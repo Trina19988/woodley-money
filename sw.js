@@ -1,4 +1,4 @@
-const CACHE_NAME = 'woodley-v2';
+const CACHE_NAME = 'woodley-v3';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
