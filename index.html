@@ -1874,12 +1874,14 @@ function convertOldBackup(oldData) {
       settings: { fyMonth: 1 }
     };
 
-    // Convert expenses to transactions
+    // Convert expenses to transactions — generate fresh unique ids since the
+    // source export can contain duplicate/colliding ids from old CSV re-imports
+    const baseStamp = Date.now();
     if (oldData.expenses && Array.isArray(oldData.expenses)) {
-      converted.transactions = oldData.expenses.filter(exp => exp).map(exp => {
+      converted.transactions = oldData.expenses.filter(exp => exp).map((exp, idx) => {
         try {
           return {
-            id: 'tx-' + (exp.id || Date.now()),
+            id: 'tx-' + baseStamp + '-' + idx + '-' + Math.random().toString(36).slice(2, 8),
             section: exp.section || 'personal',
             type: exp.type || 'expense',
             amount: parseFloat(exp.amount) || 0,
@@ -1897,10 +1899,10 @@ function convertOldBackup(oldData) {
 
     // Copy goals
     if (oldData.goals && Array.isArray(oldData.goals)) {
-      converted.goals = oldData.goals.filter(g => g).map(g => {
+      converted.goals = oldData.goals.filter(g => g).map((g, idx) => {
         try {
           return {
-            id: 'goal-' + (g.id || Date.now()),
+            id: 'goal-' + baseStamp + '-' + idx,
             name: g.name || 'Goal',
             saved: parseFloat(g.saved) || 0,
             target: parseFloat(g.target) || 0,
@@ -1916,7 +1918,7 @@ function convertOldBackup(oldData) {
 
     // Convert pipeline
     if (oldData.pipeline && Array.isArray(oldData.pipeline)) {
-      converted.pipeline = oldData.pipeline.filter(p => p).map(p => {
+      converted.pipeline = oldData.pipeline.filter(p => p).map((p, idx) => {
         try {
           let month = p.month;
           let year = p.year;
@@ -1931,7 +1933,7 @@ function convertOldBackup(oldData) {
           }
 
           return {
-            id: 'pipe-' + (p.id || Date.now()),
+            id: 'pipe-' + baseStamp + '-' + idx,
             client: p.client || '',
             amount: parseFloat(p.amount) || 0,
             month: month,
