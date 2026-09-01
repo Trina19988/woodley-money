@@ -566,7 +566,31 @@ async function afterLogin() {
   if (loaded) {
     profileExists = loaded._profileExists;
     delete loaded._profileExists;
-    data = loaded;
+
+    if (!profileExists) {
+      // New Supabase account — check for existing local data to migrate up
+      const stored = localStorage.getItem('woodley-data');
+      let localData = null;
+      if (stored) {
+        try { localData = JSON.parse(stored); } catch (e) { console.error('Failed to parse cached data', e); }
+      }
+      const hasLocalData = localData && (
+        (localData.transactions && localData.transactions.length > 0) ||
+        (localData.goals && localData.goals.length > 0) ||
+        (localData.pipeline && localData.pipeline.length > 0)
+      );
+
+      if (hasLocalData) {
+        data = localData;
+        await pushAllToSupabase();
+        profileExists = true;
+      } else {
+        data = loaded;
+      }
+    } else {
+      data = loaded;
+    }
+
     localStorage.setItem('woodley-data', JSON.stringify(data));
   } else {
     const stored = localStorage.getItem('woodley-data');
