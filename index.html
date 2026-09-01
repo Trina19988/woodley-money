@@ -761,47 +761,64 @@ async function supabaseLoadAll() {
   }
 }
 
+async function insertInChunks(table, rows, chunkSize = 200) {
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize);
+    const { error } = await supabaseClient.from(table).insert(chunk);
+    if (error) {
+      throw new Error(`${table} insert failed (rows ${i}-${i + chunk.length}): ${error.message}`);
+    }
+  }
+}
+
 async function pushAllToSupabase() {
-  if (!currentUser) return;
+  if (!currentUser) return { ok: false, error: 'No signed-in user' };
   try {
     await supaUpsertProfile();
 
-    await supabaseClient.from('transactions').delete().eq('user_id', currentUser.id);
+    let { error: delTxErr } = await supabaseClient.from('transactions').delete().eq('user_id', currentUser.id);
+    if (delTxErr) throw new Error('Delete transactions failed: ' + delTxErr.message);
     if (data.transactions.length) {
       const rows = data.transactions.map(t => ({
-        id: t.id, user_id: currentUser.id, section: t.section, type: t.type,
-        amount: t.amount, date: t.date, description: t.desc, category: t.category, notes: t.notes
+        id: String(t.id), user_id: currentUser.id, section: t.section, type: t.type,
+        amount: t.amount, date: t.date, description: t.desc || '', category: t.category, notes: t.notes || ''
       }));
-      await supabaseClient.from('transactions').insert(rows);
+      await insertInChunks('transactions', rows);
     }
 
-    await supabaseClient.from('goals').delete().eq('user_id', currentUser.id);
+    let { error: delGoalErr } = await supabaseClient.from('goals').delete().eq('user_id', currentUser.id);
+    if (delGoalErr) throw new Error('Delete goals failed: ' + delGoalErr.message);
     if (data.goals.length) {
-      const goalRows = data.goals.map(g => ({ id: g.id, user_id: currentUser.id, name: g.name, saved: g.saved, target: g.target, color: g.color }));
-      await supabaseClient.from('goals').insert(goalRows);
+      const goalRows = data.goals.map(g => ({ id: String(g.id), user_id: currentUser.id, name: g.name, saved: g.saved, target: g.target, color: g.color }));
+      await insertInChunks('goals', goalRows);
 
       const contribRows = [];
       data.goals.forEach(g => {
         (g.contributions || []).forEach(c => {
-          contribRows.push({ goal_id: g.id, amount: c.amount, contribution_date: c.date });
+          contribRows.push({ goal_id: String(g.id), amount: c.amount, contribution_date: c.date });
         });
       });
-      if (contribRows.length) await supabaseClient.from('goal_contributions').insert(contribRows);
+      if (contribRows.length) await insertInChunks('goal_contributions', contribRows);
     }
 
-    await supabaseClient.from('pipeline').delete().eq('user_id', currentUser.id);
+    let { error: delPipeErr } = await supabaseClient.from('pipeline').delete().eq('user_id', currentUser.id);
+    if (delPipeErr) throw new Error('Delete pipeline failed: ' + delPipeErr.message);
     if (data.pipeline.length) {
-      const pipeRows = data.pipeline.map(p => ({ id: p.id, user_id: currentUser.id, client: p.client, amount: p.amount, month: p.month, year: p.year, notes: p.notes, status: p.status }));
-      await supabaseClient.from('pipeline').insert(pipeRows);
+      const pipeRows = data.pipeline.map(p => ({ id: String(p.id), user_id: currentUser.id, client: p.client, amount: p.amount, month: p.month, year: p.year, notes: p.notes || '', status: p.status }));
+      await insertInChunks('pipeline', pipeRows);
     }
 
-    await supabaseClient.from('categories').delete().eq('user_id', currentUser.id);
+    let { error: delCatErr } = await supabaseClient.from('categories').delete().eq('user_id', currentUser.id);
+    if (delCatErr) throw new Error('Delete categories failed: ' + delCatErr.message);
     const catRows = [];
     (data.categories.expense || []).forEach(name => catRows.push({ user_id: currentUser.id, type: 'expense', name }));
     (data.categories.income || []).forEach(name => catRows.push({ user_id: currentUser.id, type: 'income', name }));
-    if (catRows.length) await supabaseClient.from('categories').insert(catRows);
+    if (catRows.length) await insertInChunks('categories', catRows);
+
+    return { ok: true };
   } catch (e) {
     console.error('Push to Supabase failed:', e);
+    return { ok: false, error: e.message };
   }
 }
 
@@ -1948,12 +1965,16 @@ async function restoreBackup(event) {
       };
 
       save();
-      await pushAllToSupabase();
+      const pushResult = await pushAllToSupabase();
 
       document.getElementById('restore-inp').value = '';
       btn.disabled = false;
 
-      alert(`✓ Restored!\n${data.transactions.length} transactions\n${data.goals.length} goals\n${data.pipeline.length} pipeline items\n\nSynced to your account.`);
+      if (!pushResult.ok) {
+        alert(`⚠ Saved locally, but syncing to your account FAILED:\n\n${pushResult.error}\n\nYour data is showing below but may not be backed up to the cloud yet. Screenshot this error and share it.`);
+      } else {
+        alert(`✓ Restored and synced!\n${data.transactions.length} transactions\n${data.goals.length} goals\n${data.pipeline.length} pipeline items`);
+      }
 
       document.getElementById('onboarding').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
