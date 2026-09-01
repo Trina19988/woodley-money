@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -169,11 +170,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .goal-setup-hdr{font-size:13px;color:var(--text);margin-bottom:8px;}
 .empty-state{padding:24px;color:var(--text3);font-size:13px;text-align:center;}
 .info-note{font-size:11px;color:var(--text3);padding:10px 0;}
+.auth-link{color:var(--blue);cursor:pointer;text-decoration:underline;}
+.auth-error{color:var(--danger);font-size:12px;margin-bottom:10px;min-height:16px;}
 </style>
 </head>
 <body>
 
-<div class="onboarding" id="onboarding">
+<div class="onboarding" id="auth-screen">
+  <div class="ob-card">
+    <div class="ob-title">Woodley Money</div>
+    <div class="ob-sub">Sign in to sync your data across all your devices.</div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="auth-email" placeholder="you@example.com"/></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="auth-password" placeholder="At least 6 characters"/></div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="ob-actions" style="justify-content:stretch;">
+      <button class="ob-next" style="width:100%;" id="auth-submit-btn" onclick="handleAuthSubmit()">Sign In</button>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text3);">
+      <span id="auth-toggle-text">Don't have an account?</span> <span class="auth-link" id="auth-toggle-link" onclick="toggleAuthMode()">Sign up</span>
+    </div>
+  </div>
+</div>
+
+<div class="onboarding hidden" id="onboarding">
   <div class="ob-card">
     <div class="ob-dots"><div class="ob-dot active" id="d0"></div><div class="ob-dot" id="d1"></div><div class="ob-dot" id="d2"></div><div class="ob-dot" id="d3"></div></div>
     <div class="ob-step active" id="ob0">
@@ -435,6 +454,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <button class="sheet-btn" onclick="closeSheet('sheet-menu');openSettings()">Settings (year range)</button>
       <button class="sheet-btn" onclick="closeSheet('sheet-menu');openManageCats()">Manage categories</button>
     </div>
+    <div class="info-note" id="menu-account-email" style="text-align:center;"></div>
+    <button class="sheet-btn" style="width:100%;margin-bottom:8px;color:var(--danger);" onclick="closeSheet('sheet-menu');signOut()">Sign out</button>
     <button class="sheet-btn" style="width:100%;" onclick="closeSheet('sheet-menu')">Close</button>
   </div>
 </div>
@@ -502,31 +523,65 @@ const DEF_INC_CATS = ['Salary', 'Freelance', 'Investment', 'Bonus', 'Other'];
 let saveTimeout = null;
 let saveDot = document.getElementById('save-dot');
 
+// SUPABASE
+const SUPABASE_URL = 'https://wsbnlhklmthquzvxzqpa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzYm5saGtsbXRocXV6dnh6cXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjE1OTEsImV4cCI6MjEwMzc5NzU5MX0.vbtvExwDdMQW82ojnyIxRSRZ9Lg4QKYq1TUKijA8PPI';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+let authMode = 'signin';
+let realtimeChannel = null;
+let refreshTimeout = null;
+
 // INIT
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-function load() {
-  const stored = localStorage.getItem('woodley-data');
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      data = parsed;
-      state.settings = data.settings || { fyMonth: 1 };
-    } catch (e) {
-      console.error('Failed to load data', e);
+async function load() {
+  supabaseClient.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      showAuthScreen();
     }
-  } else {
-    data.categories.expense = [...DEF_EXP_CATS];
-    data.categories.income = [...DEF_INC_CATS];
-    save();
-  }
+  });
 
-  checkOnboarding();
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  if (sessionData && sessionData.session) {
+    currentUser = sessionData.session.user;
+    await afterLogin();
+  } else {
+    showAuthScreen();
+  }
 }
 
-function checkOnboarding() {
-  const obDone = localStorage.getItem('woodley-onboarded');
-  if (!obDone) {
+function showAuthScreen() {
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('app').classList.add('hidden');
+}
+
+async function afterLogin() {
+  document.getElementById('auth-screen').classList.add('hidden');
+
+  let profileExists = false;
+  const loaded = await supabaseLoadAll();
+  if (loaded) {
+    profileExists = loaded._profileExists;
+    delete loaded._profileExists;
+    data = loaded;
+    localStorage.setItem('woodley-data', JSON.stringify(data));
+  } else {
+    const stored = localStorage.getItem('woodley-data');
+    if (stored) {
+      try { data = JSON.parse(stored); } catch (e) { console.error('Failed to load cached data', e); }
+    }
+    profileExists = localStorage.getItem('woodley-onboarded') === 'true';
+  }
+
+  state.settings = data.settings || { fyMonth: 1 };
+  if (!data.categories || !data.categories.expense || data.categories.expense.length === 0) {
+    data.categories = { expense: [...DEF_EXP_CATS], income: [...DEF_INC_CATS] };
+  }
+
+  if (!profileExists) {
     document.getElementById('onboarding').classList.remove('hidden');
     document.getElementById('app').classList.add('hidden');
   } else {
@@ -534,6 +589,282 @@ function checkOnboarding() {
     document.getElementById('app').classList.remove('hidden');
     renderAll();
   }
+
+  setupRealtimeSync();
+}
+
+// AUTH
+function toggleAuthMode() {
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  document.getElementById('auth-submit-btn').textContent = authMode === 'signin' ? 'Sign In' : 'Sign Up';
+  document.getElementById('auth-toggle-text').textContent = authMode === 'signin' ? "Don't have an account?" : 'Already have an account?';
+  document.getElementById('auth-toggle-link').textContent = authMode === 'signin' ? 'Sign up' : 'Sign in';
+  document.getElementById('auth-error').textContent = '';
+}
+
+async function handleAuthSubmit() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.color = 'var(--danger)';
+  errEl.textContent = '';
+
+  if (!email || !password) {
+    errEl.textContent = 'Please enter your email and password';
+    return;
+  }
+  if (password.length < 6) {
+    errEl.textContent = 'Password must be at least 6 characters';
+    return;
+  }
+
+  const btn = document.getElementById('auth-submit-btn');
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Please wait...';
+
+  try {
+    let result;
+    if (authMode === 'signup') {
+      result = await supabaseClient.auth.signUp({ email, password });
+    } else {
+      result = await supabaseClient.auth.signInWithPassword({ email, password });
+    }
+
+    if (result.error) {
+      errEl.textContent = result.error.message;
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      return;
+    }
+
+    if (authMode === 'signup' && !result.data.session) {
+      errEl.style.color = 'var(--green)';
+      errEl.textContent = 'Account created! Check your email to confirm, then sign in.';
+      authMode = 'signin';
+      document.getElementById('auth-submit-btn').textContent = 'Sign In';
+      document.getElementById('auth-toggle-text').textContent = "Don't have an account?";
+      document.getElementById('auth-toggle-link').textContent = 'Sign up';
+      btn.disabled = false;
+      return;
+    }
+
+    currentUser = result.data.user;
+    await afterLogin();
+  } catch (e) {
+    console.error('Auth error:', e);
+    errEl.textContent = 'Something went wrong. Please try again.';
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+async function signOut() {
+  if (!confirm('Sign out of Woodley Money?')) return;
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  data = { transactions: [], goals: [], pipeline: [], categories: { expense: [...DEF_EXP_CATS], income: [...DEF_INC_CATS] }, name: '', bizName: '' };
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  showAuthScreen();
+}
+
+// SUPABASE DATA SYNC
+async function supabaseLoadAll() {
+  if (!currentUser) return null;
+  try {
+    const [profileRes, txRes, goalsRes, contribRes, pipeRes, catRes] = await Promise.all([
+      supabaseClient.from('user_profiles').select('*').eq('id', currentUser.id).maybeSingle(),
+      supabaseClient.from('transactions').select('*').eq('user_id', currentUser.id),
+      supabaseClient.from('goals').select('*').eq('user_id', currentUser.id),
+      supabaseClient.from('goal_contributions').select('*'),
+      supabaseClient.from('pipeline').select('*').eq('user_id', currentUser.id),
+      supabaseClient.from('categories').select('*').eq('user_id', currentUser.id)
+    ]);
+
+    const profile = profileRes.data;
+
+    const transactions = (txRes.data || []).map(t => ({
+      id: t.id, section: t.section, type: t.type, amount: parseFloat(t.amount),
+      date: t.date, desc: t.description, category: t.category, notes: t.notes || ''
+    }));
+
+    const goalIds = (goalsRes.data || []).map(g => g.id);
+    const contribsByGoal = {};
+    (contribRes.data || []).forEach(c => {
+      if (!goalIds.includes(c.goal_id)) return;
+      if (!contribsByGoal[c.goal_id]) contribsByGoal[c.goal_id] = [];
+      contribsByGoal[c.goal_id].push({ date: c.contribution_date, amount: parseFloat(c.amount) });
+    });
+
+    const goals = (goalsRes.data || []).map(g => ({
+      id: g.id, name: g.name, saved: parseFloat(g.saved), target: parseFloat(g.target),
+      color: g.color, contributions: (contribsByGoal[g.id] || []).sort((a, b) => new Date(a.date) - new Date(b.date))
+    }));
+
+    const pipeline = (pipeRes.data || []).map(p => ({
+      id: p.id, client: p.client, amount: parseFloat(p.amount), month: p.month,
+      year: p.year, notes: p.notes || '', status: p.status
+    }));
+
+    const categories = { expense: [], income: [] };
+    (catRes.data || []).forEach(c => {
+      if (c.type === 'expense') categories.expense.push(c.name);
+      else categories.income.push(c.name);
+    });
+    if (categories.expense.length === 0) categories.expense = [...DEF_EXP_CATS];
+    if (categories.income.length === 0) categories.income = [...DEF_INC_CATS];
+
+    return {
+      transactions, goals, pipeline, categories,
+      name: profile?.name || '',
+      bizName: profile?.biz_name || '',
+      settings: { fyMonth: 1 },
+      _profileExists: !!profile
+    };
+  } catch (e) {
+    console.error('Load from Supabase failed:', e);
+    return null;
+  }
+}
+
+async function pushAllToSupabase() {
+  if (!currentUser) return;
+  try {
+    await supaUpsertProfile();
+
+    await supabaseClient.from('transactions').delete().eq('user_id', currentUser.id);
+    if (data.transactions.length) {
+      const rows = data.transactions.map(t => ({
+        id: t.id, user_id: currentUser.id, section: t.section, type: t.type,
+        amount: t.amount, date: t.date, description: t.desc, category: t.category, notes: t.notes
+      }));
+      await supabaseClient.from('transactions').insert(rows);
+    }
+
+    await supabaseClient.from('goals').delete().eq('user_id', currentUser.id);
+    if (data.goals.length) {
+      const goalRows = data.goals.map(g => ({ id: g.id, user_id: currentUser.id, name: g.name, saved: g.saved, target: g.target, color: g.color }));
+      await supabaseClient.from('goals').insert(goalRows);
+
+      const contribRows = [];
+      data.goals.forEach(g => {
+        (g.contributions || []).forEach(c => {
+          contribRows.push({ goal_id: g.id, amount: c.amount, contribution_date: c.date });
+        });
+      });
+      if (contribRows.length) await supabaseClient.from('goal_contributions').insert(contribRows);
+    }
+
+    await supabaseClient.from('pipeline').delete().eq('user_id', currentUser.id);
+    if (data.pipeline.length) {
+      const pipeRows = data.pipeline.map(p => ({ id: p.id, user_id: currentUser.id, client: p.client, amount: p.amount, month: p.month, year: p.year, notes: p.notes, status: p.status }));
+      await supabaseClient.from('pipeline').insert(pipeRows);
+    }
+
+    await supabaseClient.from('categories').delete().eq('user_id', currentUser.id);
+    const catRows = [];
+    (data.categories.expense || []).forEach(name => catRows.push({ user_id: currentUser.id, type: 'expense', name }));
+    (data.categories.income || []).forEach(name => catRows.push({ user_id: currentUser.id, type: 'income', name }));
+    if (catRows.length) await supabaseClient.from('categories').insert(catRows);
+  } catch (e) {
+    console.error('Push to Supabase failed:', e);
+  }
+}
+
+async function supaUpsertProfile() {
+  if (!currentUser) return;
+  try {
+    await supabaseClient.from('user_profiles').upsert({ id: currentUser.id, name: data.name, biz_name: data.bizName });
+  } catch (e) { console.error('Profile sync failed:', e); }
+}
+
+async function supaUpsertTx(t) {
+  if (!currentUser) return;
+  try {
+    await supabaseClient.from('transactions').upsert({
+      id: t.id, user_id: currentUser.id, section: t.section, type: t.type,
+      amount: t.amount, date: t.date, description: t.desc, category: t.category, notes: t.notes
+    });
+  } catch (e) { console.error('Transaction sync failed:', e); }
+}
+
+async function supaDeleteTx(id) {
+  if (!currentUser) return;
+  try { await supabaseClient.from('transactions').delete().eq('id', id); } catch (e) { console.error('Transaction delete failed:', e); }
+}
+
+async function supaUpsertGoal(g) {
+  if (!currentUser) return;
+  try {
+    await supabaseClient.from('goals').upsert({
+      id: g.id, user_id: currentUser.id, name: g.name, saved: g.saved, target: g.target, color: g.color
+    });
+  } catch (e) { console.error('Goal sync failed:', e); }
+}
+
+async function supaAddContribution(goalId, amount, date) {
+  if (!currentUser) return;
+  try {
+    await supabaseClient.from('goal_contributions').insert({ goal_id: goalId, amount, contribution_date: date });
+  } catch (e) { console.error('Contribution sync failed:', e); }
+}
+
+async function supaUpsertPipe(p) {
+  if (!currentUser) return;
+  try {
+    await supabaseClient.from('pipeline').upsert({
+      id: p.id, user_id: currentUser.id, client: p.client, amount: p.amount,
+      month: p.month, year: p.year, notes: p.notes, status: p.status
+    });
+  } catch (e) { console.error('Pipeline sync failed:', e); }
+}
+
+async function supaDeletePipe(id) {
+  if (!currentUser) return;
+  try { await supabaseClient.from('pipeline').delete().eq('id', id); } catch (e) { console.error('Pipeline delete failed:', e); }
+}
+
+async function supaAddCategory(type, name) {
+  if (!currentUser) return;
+  try { await supabaseClient.from('categories').insert({ user_id: currentUser.id, type, name }); } catch (e) { console.error('Category sync failed:', e); }
+}
+
+async function supaDeleteCategory(type, name) {
+  if (!currentUser) return;
+  try {
+    await supabaseClient.from('categories').delete().eq('user_id', currentUser.id).eq('type', type).eq('name', name);
+  } catch (e) { console.error('Category delete failed:', e); }
+}
+
+function setupRealtimeSync() {
+  if (!currentUser) return;
+  if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+
+  realtimeChannel = supabaseClient.channel('woodley-sync-' + currentUser.id)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${currentUser.id}` }, refreshFromCloud)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'goals', filter: `user_id=eq.${currentUser.id}` }, refreshFromCloud)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_contributions' }, refreshFromCloud)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline', filter: `user_id=eq.${currentUser.id}` }, refreshFromCloud)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${currentUser.id}` }, refreshFromCloud)
+    .subscribe();
+}
+
+function refreshFromCloud() {
+  clearTimeout(refreshTimeout);
+  refreshTimeout = setTimeout(async () => {
+    const loaded = await supabaseLoadAll();
+    if (loaded) {
+      delete loaded._profileExists;
+      data = loaded;
+      localStorage.setItem('woodley-data', JSON.stringify(data));
+      renderAll();
+    }
+  }, 800);
 }
 
 function save() {
@@ -559,7 +890,7 @@ function nextOb(step) {
 
 function skipOb() { nextOb(3); }
 
-function finishOb() {
+async function finishOb() {
   const name = document.getElementById('ob-name').value || 'User';
   const bizName = document.getElementById('ob-biz').value || '';
   const pBal = parseFloat(document.getElementById('ob-pbal').value) || 0;
@@ -611,8 +942,13 @@ function finishOb() {
   });
 
   save();
-  localStorage.setItem('woodley-onboarded', 'true');
-  checkOnboarding();
+  await supaUpsertProfile();
+  for (const t of data.transactions) await supaUpsertTx(t);
+  for (const g of data.goals) await supaUpsertGoal(g);
+
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  renderAll();
 }
 
 // NAVIGATION
@@ -931,15 +1267,16 @@ function editTx(id) {
   openSheet('sheet-tx');
 }
 
-function delTx(id) {
+async function delTx(id) {
   if (confirm('Delete this transaction?')) {
     data.transactions = data.transactions.filter(t => t.id !== id);
     save();
+    await supaDeleteTx(id);
     renderAll();
   }
 }
 
-function saveTx() {
+async function saveTx() {
   const amt = parseFloat(document.getElementById('tx-amount').value);
   const date = document.getElementById('tx-date').value;
   const desc = document.getElementById('tx-desc').value.trim();
@@ -951,6 +1288,7 @@ function saveTx() {
     return;
   }
 
+  let savedTx;
   if (state.editingTxId) {
     const tx = data.transactions.find(t => t.id === state.editingTxId);
     if (tx) {
@@ -959,9 +1297,10 @@ function saveTx() {
       tx.desc = desc;
       tx.category = cat;
       tx.notes = notes;
+      savedTx = tx;
     }
   } else {
-    data.transactions.push({
+    savedTx = {
       id: 'tx-' + Date.now(),
       section: state.txSection,
       type: state.txType,
@@ -970,10 +1309,12 @@ function saveTx() {
       desc,
       category: cat,
       notes
-    });
+    };
+    data.transactions.push(savedTx);
   }
 
   save();
+  if (savedTx) await supaUpsertTx(savedTx);
   closeSheet('sheet-tx');
   renderAll();
 }
@@ -1037,7 +1378,7 @@ function selectColor(c) {
   event.target.dataset.selected = c;
 }
 
-function saveGoal() {
+async function saveGoal() {
   const name = document.getElementById('g-name').value.trim();
   const saved = parseFloat(document.getElementById('g-saved').value) || 0;
   const target = parseFloat(document.getElementById('g-target').value) || 0;
@@ -1048,6 +1389,7 @@ function saveGoal() {
     return;
   }
 
+  let savedGoal;
   if (state.editingGoalId) {
     const goal = data.goals.find(g => g.id === state.editingGoalId);
     if (goal) {
@@ -1055,24 +1397,27 @@ function saveGoal() {
       goal.saved = saved;
       goal.target = target;
       goal.color = color;
+      savedGoal = goal;
     }
   } else {
-    data.goals.push({
+    savedGoal = {
       id: 'goal-' + Date.now(),
       name,
       saved,
       target,
       color,
       contributions: []
-    });
+    };
+    data.goals.push(savedGoal);
   }
 
   save();
+  if (savedGoal) await supaUpsertGoal(savedGoal);
   closeSheet('sheet-goal');
   renderGoals();
 }
 
-function contributeGoal(id) {
+async function contributeGoal(id) {
   const amt = parseFloat(document.getElementById('g-contrib-' + id).value);
   if (!amt || amt <= 0) {
     alert('Enter a valid amount');
@@ -1081,14 +1426,14 @@ function contributeGoal(id) {
 
   const goal = data.goals.find(g => g.id === id);
   if (goal) {
+    const contribDate = new Date().toISOString().split('T')[0];
     goal.saved += amt;
     if (!goal.contributions) goal.contributions = [];
-    goal.contributions.push({
-      date: new Date().toISOString().split('T')[0],
-      amount: amt
-    });
+    goal.contributions.push({ date: contribDate, amount: amt });
     document.getElementById('g-contrib-' + id).value = '';
     save();
+    await supaUpsertGoal(goal);
+    await supaAddContribution(id, amt, contribDate);
     renderGoals();
   }
 }
@@ -1119,7 +1464,7 @@ function openAddPipe() {
   openSheet('sheet-pipe');
 }
 
-function savePipe() {
+async function savePipe() {
   const client = document.getElementById('p-client').value.trim();
   const amt = parseFloat(document.getElementById('p-amount').value);
   const year = parseInt(document.getElementById('p-year').value);
@@ -1132,6 +1477,7 @@ function savePipe() {
     return;
   }
 
+  let savedPipe;
   if (state.editingPipeId) {
     const pipe = data.pipeline.find(p => p.id === state.editingPipeId);
     if (pipe) {
@@ -1141,9 +1487,10 @@ function savePipe() {
       pipe.month = month;
       pipe.notes = notes;
       pipe.status = status;
+      savedPipe = pipe;
     }
   } else {
-    data.pipeline.push({
+    savedPipe = {
       id: 'pipe-' + Date.now(),
       client,
       amount: amt,
@@ -1151,29 +1498,33 @@ function savePipe() {
       month,
       notes,
       status
-    });
+    };
+    data.pipeline.push(savedPipe);
   }
 
   save();
+  if (savedPipe) await supaUpsertPipe(savedPipe);
   closeSheet('sheet-pipe');
   renderPipeline();
 }
 
-function cyclePipeStatus(id) {
+async function cyclePipeStatus(id) {
   const pipe = data.pipeline.find(p => p.id === id);
   if (pipe) {
     const statuses = ['pending', 'invoiced', 'received'];
     const idx = statuses.indexOf(pipe.status);
     pipe.status = statuses[(idx + 1) % 3];
     save();
+    await supaUpsertPipe(pipe);
     renderPipeline();
   }
 }
 
-function delPipe(id) {
+async function delPipe(id) {
   if (confirm('Delete this client?')) {
     data.pipeline = data.pipeline.filter(p => p.id !== id);
     save();
+    await supaDeletePipe(id);
     renderPipeline();
   }
 }
@@ -1235,6 +1586,8 @@ function onMonthChangeExp() {
 
 // MENU & SHEETS
 function openMenu() {
+  const emailEl = document.getElementById('menu-account-email');
+  if (emailEl) emailEl.textContent = currentUser ? `Signed in as ${currentUser.email}` : '';
   openSheet('sheet-menu');
 }
 
@@ -1330,10 +1683,11 @@ function setImpSec(sec) {
   document.getElementById('imp-sec-biz').classList.toggle('biz-on', sec === 'business');
 }
 
-function confirmImport() {
+async function confirmImport() {
   if (!window.csvImport || window.csvImport.length === 0) return;
 
   const rows = document.querySelectorAll('#imp-review .import-review-row');
+  const newTxs = [];
   rows.forEach((row, idx) => {
     const imp = window.csvImport[idx];
     const amt = parseFloat(row.querySelector('.ir-amt').value);
@@ -1341,7 +1695,7 @@ function confirmImport() {
     const typeBtn = row.querySelector('.ir-type');
     const type = typeBtn.classList.contains('irt-expense') ? 'expense' : 'income';
 
-    data.transactions.push({
+    const tx = {
       id: 'import-' + Date.now() + idx,
       section: state.impSection,
       type,
@@ -1350,10 +1704,13 @@ function confirmImport() {
       desc: imp.desc,
       category: cat,
       notes: 'Imported from CSV'
-    });
+    };
+    data.transactions.push(tx);
+    newTxs.push(tx);
   });
 
   save();
+  for (const tx of newTxs) await supaUpsertTx(tx);
   closeSheet('sheet-import');
   renderExpenseList();
 }
@@ -1388,7 +1745,7 @@ function renderCatMgmt() {
   document.getElementById('cat-mgmt-list').innerHTML = html;
 }
 
-function addCategory() {
+async function addCategory() {
   const name = document.getElementById('new-cat-name').value.trim();
   if (!name) return;
 
@@ -1396,15 +1753,17 @@ function addCategory() {
   if (!cats.includes(name)) {
     cats.push(name);
     save();
+    await supaAddCategory('expense', name);
     document.getElementById('new-cat-name').value = '';
     renderCatMgmt();
   }
 }
 
-function delCategory(cat, type) {
+async function delCategory(cat, type) {
   if (confirm(`Delete category "${cat}"?`)) {
     data.categories[type] = data.categories[type].filter(c => c !== cat);
     save();
+    await supaDeleteCategory(type, cat);
     renderCatMgmt();
   }
 }
@@ -1518,50 +1877,48 @@ function convertOldBackup(oldData) {
   }
 }
 
-function restoreBackup(event) {
+async function restoreBackup(event) {
   const file = event.target.files[0];
   if (!file) {
     alert('No file selected');
     return;
   }
 
-  // Show loading state
   const btn = event.target;
   btn.disabled = true;
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
-      console.log('Starting restore...');
-
-      // Parse JSON
       const parsed = JSON.parse(e.target.result);
-      console.log('JSON parsed, transactions:', parsed.transactions?.length || 0);
 
-      // Minimal validation - accept whatever structure is there
-      const importedData = {
-        transactions: parsed.transactions || [],
-        goals: parsed.goals || [],
-        pipeline: parsed.pipeline || [],
-        categories: parsed.categories || { expense: DEF_EXP_CATS, income: DEF_INC_CATS },
-        name: parsed.name || 'User',
-        bizName: parsed.bizName || '',
-        settings: parsed.settings || { fyMonth: 1 }
+      let importedData = parsed;
+      if (parsed.expenses && !parsed.transactions) {
+        const converted = convertOldBackup(parsed);
+        if (converted) importedData = converted;
+      }
+
+      data = {
+        transactions: importedData.transactions || [],
+        goals: importedData.goals || [],
+        pipeline: importedData.pipeline || [],
+        categories: importedData.categories || { expense: DEF_EXP_CATS, income: DEF_INC_CATS },
+        name: importedData.name || 'User',
+        bizName: importedData.bizName || '',
+        settings: importedData.settings || { fyMonth: 1 }
       };
 
-      console.log('Saving to localStorage...');
-
-      // Save in chunks to avoid blocking
-      localStorage.setItem('woodley-onboarded', 'true');
-      localStorage.setItem('woodley-data', JSON.stringify(importedData));
-
-      console.log('Save complete!');
+      save();
+      await pushAllToSupabase();
 
       document.getElementById('restore-inp').value = '';
       btn.disabled = false;
 
-      const msg = `✓ Data saved!\n\n${importedData.transactions.length} transactions\n${importedData.goals.length} goals\n${importedData.pipeline.length} pipeline\n\nNow REFRESH the page (F5) to load your data.`;
-      alert(msg);
+      alert(`✓ Restored!\n${data.transactions.length} transactions\n${data.goals.length} goals\n${data.pipeline.length} pipeline items\n\nSynced to your account.`);
+
+      document.getElementById('onboarding').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      renderAll();
 
     } catch (err) {
       console.error('Restore failed:', err);
