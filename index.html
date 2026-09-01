@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Woodley Money"/>
+<meta name="theme-color" content="#0f0f14"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<title>Woodley Money</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0f0f14;--bg2:#16161e;--bg3:#1c1c26;--bg4:#22222f;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e8e8f0;--text2:#9090a8;--text3:#5a5a72;
+  --blue:#a8c8f0;--blue2:#7aa8d8;--blue-bg:rgba(168,200,240,0.1);
+  --green:#a8d8b8;--green2:#7ab898;--green-bg:rgba(168,216,184,0.1);
+  --pink:#f0b8cc;--pink2:#d898b0;--pink-bg:rgba(240,184,204,0.1);
+  --warn:#f0c878;--warn-bg:rgba(240,200,120,0.1);
+  --danger:#f09898;--purple:#b8a8f0;--purple-bg:rgba(184,168,240,0.1);
+  --font:'DM Sans',sans-serif;
+  --radius:12px;--radius-sm:8px;
+  --safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.6;overflow:hidden;}
+.hidden{display:none!important;}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;padding-top:var(--safe-top);display:flex;align-items:center;justify-content:space-between;height:calc(54px + var(--safe-top));flex-shrink:0;gap:8px;}
+.logo{font-size:18px;font-weight:500;color:var(--blue);letter-spacing:-0.5px;}
+.header-actions{display:flex;gap:6px;align-items:center;}
+.save-dot{width:7px;height:7px;border-radius:50%;background:var(--green2);}
+.save-dot.saving{background:var(--warn);}
+.icon-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 11px;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;}
+.icon-btn.primary{background:var(--blue-bg);border-color:rgba(168,200,240,0.3);color:var(--blue);}
+.tab-pills{display:flex;gap:4px;}
+.tab-pill{padding:5px 12px;border-radius:20px;border:1px solid transparent;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);background:none;font-family:var(--font);}
+.tab-pill.active{background:var(--blue-bg);border-color:rgba(168,200,240,0.3);color:var(--blue);}
+.tab-pill.biz.active{background:var(--green-bg);border-color:rgba(168,216,184,0.3);color:var(--green);}
+.content-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(70px + var(--safe-bottom));}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:50;flex-shrink:0;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;cursor:pointer;color:var(--text3);font-size:10px;border:none;background:none;font-family:var(--font);}
+.nav-item.active{color:var(--blue);}
+.nav-icon{font-size:20px;line-height:1;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
+.card-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:13px;font-weight:500;color:var(--text);}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.summary-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.summary-card.blue{border-color:rgba(168,200,240,0.2);}
+.summary-card.green{border-color:rgba(168,216,184,0.2);}
+.summary-card.pink{border-color:rgba(240,184,204,0.2);}
+.summary-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.summary-value{font-size:22px;font-weight:300;}
+.summary-value.blue{color:var(--blue);}
+.summary-value.green{color:var(--green);}
+.summary-value.pink{color:var(--pink);}
+.summary-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.period-bar{display:flex;gap:8px;margin-bottom:14px;align-items:center;}
+.period-select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;cursor:pointer;flex:1;}
+.year-select{background:var(--bg3);border:1px solid rgba(168,200,240,0.3);border-radius:var(--radius-sm);padding:8px 12px;color:var(--blue);font-size:13px;font-family:var(--font);outline:none;cursor:pointer;width:90px;}
+.tx-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);}
+.tx-row:last-child{border-bottom:none;}
+.tx-row:active{background:var(--bg3);}
+.tx-main{flex:1;min-width:0;}
+.tx-name{font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tx-sub{font-size:11px;color:var(--text3);}
+.tx-amount{font-size:14px;font-weight:500;white-space:nowrap;}
+.tx-actions{display:flex;gap:4px;}
+.tx-edit{background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:3px 6px;border-radius:4px;font-family:var(--font);}
+.tx-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:3px 5px;border-radius:4px;line-height:1;font-family:var(--font);}
+.cat-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;}
+.cb-blue{background:rgba(168,200,240,0.12);color:var(--blue);}
+.cb-green{background:rgba(168,216,184,0.12);color:var(--green);}
+.cb-pink{background:rgba(240,184,204,0.12);color:var(--pink);}
+.cb-warn{background:rgba(240,200,120,0.12);color:var(--warn);}
+.bar-row{padding:9px 14px;border-bottom:1px solid var(--border);}
+.bar-row:last-child{border-bottom:none;}
+.bar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:13px;}
+.bar-track{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;}
+.goal-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.goal-name-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.goal-name{font-size:14px;font-weight:500;color:var(--text);}
+.goal-pct-badge{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg3);color:var(--text3);}
+.goal-amts{display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:5px;}
+.goal-bar-track{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:4px;}
+.goal-bar-fill{height:100%;border-radius:3px;}
+.goal-remaining{font-size:11px;color:var(--text3);margin-bottom:10px;}
+.goal-contrib-row{display:flex;gap:8px;border-top:1px solid var(--border);padding-top:10px;}
+.goal-contrib-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 11px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;}
+.goal-contrib-btn{padding:8px 14px;border-radius:var(--radius-sm);border:1px solid rgba(168,216,184,0.3);background:var(--green-bg);color:var(--green);font-size:12px;cursor:pointer;font-family:var(--font);}
+.goal-hist{margin-top:6px;}
+.goal-hist-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:2px 0;}
+.goal-hist-amt{color:var(--green);}
+.add-goal-btn-card{border:1px dashed var(--border2);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;margin-bottom:12px;color:var(--text3);font-size:13px;}
+.add-goal-btn-card:active{background:var(--bg3);}
+.pipe-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);}
+.pipe-row:last-child{border-bottom:none;}
+.pipe-main{flex:1;min-width:0;}
+.pipe-client{font-size:13px;font-weight:500;color:var(--text);}
+.pipe-sub{font-size:11px;color:var(--text3);}
+.pipe-amount{font-size:14px;font-weight:500;color:var(--green);white-space:nowrap;}
+.status-btn{font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1px solid transparent;font-family:var(--font);white-space:nowrap;}
+.st-pending{background:var(--warn-bg);border-color:rgba(240,200,120,0.3);color:var(--warn);}
+.st-invoiced{background:var(--blue-bg);border-color:rgba(168,200,240,0.3);color:var(--blue);}
+.st-received{background:var(--green-bg);border-color:rgba(168,216,184,0.3);color:var(--green);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-size:18px;color:var(--text);font-weight:500;}
+.filter-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;}
+.filter-tab{padding:5px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0;}
+.filter-tab.active{background:var(--purple-bg);border-color:rgba(184,168,240,0.3);color:var(--purple);}
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;}
+.search-bar input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:var(--font);}
+.search-bar input::placeholder{color:var(--text3);}
+.search-clr{color:var(--text3);cursor:pointer;background:none;border:none;font-size:14px;font-family:var(--font);}
+.fab{position:fixed;bottom:calc(70px + var(--safe-bottom) + 12px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--blue-bg);border:1px solid rgba(168,200,240,0.4);color:var(--blue);font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:40;box-shadow:0 0 0 1px rgba(168,200,240,0.1);}
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;display:flex;flex-direction:column;justify-content:flex-end;}
+.sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px;padding-bottom:calc(20px + var(--safe-bottom));max-height:90vh;overflow-y:auto;}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 16px;}
+.sheet-title{font-size:17px;color:var(--text);margin-bottom:16px;font-weight:500;}
+.form-group{margin-bottom:12px;}
+.form-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:block;}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;color:var(--text);font-size:15px;font-family:var(--font);outline:none;-webkit-appearance:none;}
+.form-input:focus{border-color:rgba(168,200,240,0.4);}
+.form-select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;color:var(--text);font-size:15px;font-family:var(--font);outline:none;cursor:pointer;-webkit-appearance:none;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sheet-actions{display:flex;gap:8px;margin-top:16px;}
+.sheet-btn{flex:1;padding:13px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:14px;cursor:pointer;font-family:var(--font);}
+.sheet-btn.primary{background:var(--blue-bg);border-color:rgba(168,200,240,0.3);color:var(--blue);}
+.sheet-btn.green{background:var(--green-bg);border-color:rgba(168,216,184,0.3);color:var(--green);}
+.toggle-row{display:flex;gap:6px;margin-bottom:4px;}
+.toggle-opt{flex:1;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font);text-align:center;}
+.toggle-opt.exp-on{background:rgba(240,152,152,0.1);border-color:rgba(240,152,152,0.3);color:var(--danger);}
+.toggle-opt.inc-on{background:var(--green-bg);border-color:rgba(168,216,184,0.3);color:var(--green);}
+.toggle-opt.pers-on{background:var(--blue-bg);border-color:rgba(168,200,240,0.3);color:var(--blue);}
+.toggle-opt.biz-on{background:var(--green-bg);border-color:rgba(168,216,184,0.3);color:var(--green);}
+.color-swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
+.color-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+.color-swatch.selected{border-color:var(--text);}
+.import-review-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.import-review-row:last-child{border-bottom:none;}
+.ir-desc{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ir-date{font-size:10px;color:var(--text3);}
+.ir-amt{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:5px 8px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;width:80px;}
+.ir-cat{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:5px 8px;color:var(--text);font-size:11px;font-family:var(--font);outline:none;cursor:pointer;flex:1;}
+.ir-type{padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border2);font-size:11px;cursor:pointer;font-family:var(--font);white-space:nowrap;}
+.irt-exp{background:rgba(240,152,152,0.1);border-color:rgba(240,152,152,0.25);color:var(--danger);}
+.irt-inc{background:var(--green-bg);border-color:rgba(168,216,184,0.25);color:var(--green);}
+.onboarding{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:200;padding-top:calc(20px + var(--safe-top));}
+.ob-card{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:28px 22px;width:100%;max-width:440px;}
+.ob-title{font-size:26px;color:var(--text);margin-bottom:4px;font-weight:500;}
+.ob-sub{font-size:13px;color:var(--text2);margin-bottom:22px;}
+.ob-dots{display:flex;gap:5px;margin-bottom:22px;}
+.ob-dot{width:6px;height:6px;border-radius:3px;background:var(--bg4);}
+.ob-dot.active{width:18px;background:var(--blue);}
+.ob-dot.done{background:var(--green2);}
+.ob-step{display:none;}
+.ob-step.active{display:block;}
+.ob-actions{display:flex;justify-content:space-between;margin-top:20px;align-items:center;}
+.ob-next{background:var(--blue-bg);border:1px solid rgba(168,200,240,0.3);color:var(--blue);padding:11px 24px;border-radius:20px;cursor:pointer;font-size:14px;font-family:var(--font);font-weight:500;}
+.ob-skip{background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;font-family:var(--font);}
+.goal-setup-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;}
+.goal-setup-hdr{font-size:13px;color:var(--text);margin-bottom:8px;}
+.empty-state{padding:24px;color:var(--text3);font-size:13px;text-align:center;}
+.info-note{font-size:11px;color:var(--text3);padding:10px 0;}
+</style>
+</head>
+<body>
+
+<div class="onboarding" id="onboarding">
+  <div class="ob-card">
+    <div class="ob-dots"><div class="ob-dot active" id="d0"></div><div class="ob-dot" id="d1"></div><div class="ob-dot" id="d2"></div><div class="ob-dot" id="d3"></div></div>
+    <div class="ob-step active" id="ob0">
+      <div class="ob-title">Woodley Money</div>
+      <div class="ob-sub">Track your finances with clarity. Let's get started.</div>
+      <div class="form-group"><label class="form-label">Your name</label><input class="form-input" placeholder="First name" id="ob-name"/></div>
+      <div class="form-group"><label class="form-label">Business name</label><input class="form-input" placeholder="My Business" id="ob-biz"/></div>
+      <div class="ob-actions"><button class="ob-skip" onclick="skipOb()">Skip</button><button class="ob-next" onclick="nextOb(1)">Continue</button></div>
+    </div>
+    <div class="ob-step" id="ob1">
+      <div class="ob-title">Starting balances</div>
+      <div class="ob-sub">Add your current balances for accuracy.</div>
+      <div class="form-group"><label class="form-label">Personal balance</label><input class="form-input" type="number" placeholder="$0.00" id="ob-pbal"/></div>
+      <div class="form-group"><label class="form-label">Business balance</label><input class="form-input" type="number" placeholder="$0.00" id="ob-bbal"/></div>
+      <div class="ob-actions"><button class="ob-skip" onclick="nextOb(0)">Back</button><button class="ob-next" onclick="nextOb(2)">Continue</button></div>
+    </div>
+    <div class="ob-step" id="ob2">
+      <div class="ob-title">Savings goals</div>
+      <div class="ob-sub">Set your targets — update anytime.</div>
+      <div class="goal-setup-block"><div class="goal-setup-hdr">Vacation / Travel</div><div class="form-row"><div><label class="form-label">Saved</label><input class="form-input" type="number" placeholder="$0" id="g1s"/></div><div><label class="form-label">Target</label><input class="form-input" type="number" placeholder="$3,000" id="g1t"/></div></div></div>
+      <div class="goal-setup-block"><div class="goal-setup-hdr">Pay off debt</div><div class="form-row"><div><label class="form-label">Paid so far</label><input class="form-input" type="number" placeholder="$0" id="g2s"/></div><div><label class="form-label">Total debt</label><input class="form-input" type="number" placeholder="$10,000" id="g2t"/></div></div></div>
+      <div class="goal-setup-block"><div class="goal-setup-hdr">Emergency fund</div><div class="form-row"><div><label class="form-label">Saved</label><input class="form-input" type="number" placeholder="$0" id="g3s"/></div><div><label class="form-label">Target</label><input class="form-input" type="number" placeholder="$5,000" id="g3t"/></div></div></div>
+      <div class="ob-actions"><button class="ob-skip" onclick="nextOb(1)">Back</button><button class="ob-next" onclick="nextOb(3)">Continue</button></div>
+    </div>
+    <div class="ob-step" id="ob3">
+      <div class="ob-title">Ready to go!</div>
+      <div class="ob-sub">Everything saves automatically. Restore your backup anytime from the menu.</div>
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:14px;font-size:12px;color:var(--text2);line-height:1.9;">
+        + Personal &amp; Business tabs<br>
+        + Income Pipeline for client payments<br>
+        + Savings goals with progress<br>
+        + CSV bank import<br>
+        + Works offline on mobile
+      </div>
+      <div class="ob-actions"><button class="ob-skip" onclick="nextOb(2)">Back</button><button class="ob-next" onclick="finishOb()">Open Woodley Money</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="header">
+    <div class="logo" id="app-logo">Woodley Money</div>
+    <div class="tab-pills">
+      <button class="tab-pill active" id="tp-personal" onclick="switchTab('personal')">Personal</button>
+      <button class="tab-pill biz" id="tp-business" onclick="switchTab('business')">Business</button>
+    </div>
+    <div class="header-actions">
+      <div class="save-dot" id="save-dot"></div>
+      <button class="icon-btn" onclick="openMenu()">&#8942;</button>
+    </div>
+  </div>
+
+  <div class="content-area" id="content-area">
+
+    <div id="view-dashboard">
+      <div class="period-bar">
+        <select class="year-select" id="year-sel" onchange="onYearChange()"></select>
+        <select class="period-select" id="month-sel" onchange="onMonthChange()"></select>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-card"><div class="summary-label">Spent</div><div class="summary-value" id="s-spent">$0</div><div class="summary-sub" id="s-spent-sub"></div></div>
+        <div class="summary-card green"><div class="summary-label">Income</div><div class="summary-value green" id="s-income">$0</div><div class="summary-sub"></div></div>
+        <div class="summary-card blue"><div class="summary-label">Cash flow</div><div class="summary-value blue" id="s-flow">$0</div><div class="summary-sub">in minus out</div></div>
+        <div class="summary-card pink"><div class="summary-label">Transactions</div><div class="summary-value pink" id="s-txcount">0</div><div class="summary-sub" id="s-txsub"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">By category</div></div>
+        <div id="cat-bars"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Recent transactions</div><button class="icon-btn" onclick="switchView('expenses')" style="font-size:11px;">See all</button></div>
+        <div id="recent-txs"></div>
+      </div>
+    </div>
+
+    <div id="view-expenses" class="hidden">
+      <div class="period-bar">
+        <select class="year-select" id="year-sel-exp" onchange="onYearChangeExp()" style="width:80px;"></select>
+        <select class="period-select" id="month-sel-exp" onchange="onMonthChangeExp()"></select>
+      </div>
+      <div class="search-bar">
+        <span style="color:var(--text3);">🔍</span>
+        <input type="search" placeholder="Search transactions..." id="search-inp" oninput="onSearch()"/>
+        <button class="search-clr hidden" id="search-clr" onclick="clearSearch()">x</button>
+      </div>
+      <div class="card"><div id="all-txs"></div></div>
+    </div>
+
+    <div id="view-goals" class="hidden">
+      <div class="section-header"><div class="section-title">Savings goals</div></div>
+      <div id="goals-list"></div>
+      <div class="add-goal-btn-card" onclick="openAddGoal()">+ Add a new goal</div>
+    </div>
+
+    <div id="view-pipeline" class="hidden">
+      <div class="period-bar">
+        <select class="year-select" id="year-sel-pipe" onchange="onYearChangePipe()" style="width:90px;"></select>
+        <select class="period-select" id="month-sel-pipe" onchange="onMonthChangePipe()"></select>
+      </div>
+      <div class="summary-grid" id="pipe-summary"></div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" id="ptab-all" onclick="setPipeFilter('all')">All</button>
+        <button class="filter-tab" id="ptab-pending" onclick="setPipeFilter('pending')">Pending</button>
+        <button class="filter-tab" id="ptab-invoiced" onclick="setPipeFilter('invoiced')">Invoiced</button>
+        <button class="filter-tab" id="ptab-received" onclick="setPipeFilter('received')">Received</button>
+      </div>
+      <div class="card"><div id="pipe-list"></div></div>
+      <div class="info-note">Marking Received does not add to transactions — add income manually when payment lands.</div>
+    </div>
+
+  </div>
+
+  <button class="fab" id="fab" onclick="onFabTap()">+</button>
+
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
+      <div class="nav-icon">📊</div>Dashboard
+    </button>
+    <button class="nav-item" id="nav-expenses" onclick="switchView('expenses')">
+      <div class="nav-icon">💸</div>Expenses
+    </button>
+    <button class="nav-item" id="nav-goals" onclick="switchView('goals')">
+      <div class="nav-icon">🎯</div>Goals
+    </button>
+    <button class="nav-item hidden" id="nav-pipeline" onclick="switchView('pipeline')">
+      <div class="nav-icon">📈</div>Pipeline
+    </button>
+  </div>
+</div>
+
+<!-- Add/Edit Transaction Sheet -->
+<div class="sheet-overlay hidden" id="sheet-tx">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="tx-sheet-title">Add transaction</div>
+    <div class="form-group">
+      <label class="form-label">Section</label>
+      <div class="toggle-row">
+        <button class="toggle-opt pers-on" id="sec-pers" onclick="setSection('personal')">Personal</button>
+        <button class="toggle-opt" id="sec-biz" onclick="setSection('business')">Business</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <div class="toggle-row">
+        <button class="toggle-opt exp-on" id="type-exp" onclick="setType('expense')">Expense</button>
+        <button class="toggle-opt" id="type-inc" onclick="setType('income')">Income</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Amount</label><input class="form-input" type="number" step="0.01" placeholder="0.00" id="tx-amount" inputmode="decimal"/></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="tx-date"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" placeholder="What was this for?" id="tx-desc"/></div>
+    <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="tx-cat"></select></div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" placeholder="Extra details..." id="tx-notes"/></div>
+    <div class="sheet-actions">
+      <button class="sheet-btn" onclick="closeSheet('sheet-tx')">Cancel</button>
+      <button class="sheet-btn primary" id="tx-save-btn" onclick="saveTx()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Goal Sheet -->
+<div class="sheet-overlay hidden" id="sheet-goal">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="goal-sheet-title">New goal</div>
+    <div class="form-group"><label class="form-label">Goal name</label><input class="form-input" placeholder="e.g. New car, vacation..." id="g-name"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Saved so far</label><input class="form-input" type="number" placeholder="$0" id="g-saved" inputmode="decimal"/></div>
+      <div class="form-group"><label class="form-label">Target</label><input class="form-input" type="number" placeholder="$5,000" id="g-target" inputmode="decimal"/></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Color</label>
+      <div class="color-swatches" id="g-colors"></div>
+    </div>
+    <div class="sheet-actions">
+      <button class="sheet-btn" onclick="closeSheet('sheet-goal')">Cancel</button>
+      <button class="sheet-btn primary" id="g-save-btn" onclick="saveGoal()">Save goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Pipeline Sheet -->
+<div class="sheet-overlay hidden" id="sheet-pipe">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="pipe-sheet-title">Add client</div>
+    <div class="form-group"><label class="form-label">Client name</label><input class="form-input" placeholder="e.g. ABC Company" id="p-client"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Amount</label><input class="form-input" type="number" placeholder="$0.00" id="p-amount" inputmode="decimal"/></div>
+      <div class="form-group"><label class="form-label">Year</label><select class="form-select" id="p-year"></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Month</label><select class="form-select" id="p-month"></select></div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" placeholder="Project, retainer..." id="p-notes"/></div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select class="form-select" id="p-status"><option value="pending">Pending</option><option value="invoiced">Invoiced</option><option value="received">Received</option></select>
+    </div>
+    <div class="sheet-actions">
+      <button class="sheet-btn" onclick="closeSheet('sheet-pipe')">Cancel</button>
+      <button class="sheet-btn primary" id="p-save-btn" onclick="savePipe()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV Import Sheet -->
+<div class="sheet-overlay hidden" id="sheet-import">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Import CSV</div>
+    <div id="imp1">
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.8;">
+        Download transactions as CSV from your bank, then upload here. Works with any bank format.
+      </div>
+      <button class="sheet-btn primary" style="width:100%;margin-bottom:8px;" onclick="document.getElementById('csv-inp').click()">Select CSV file</button>
+      <input type="file" id="csv-inp" accept=".csv,.txt" style="display:none" onchange="handleCSV(event)"/>
+      <div class="sheet-actions"><button class="sheet-btn" onclick="closeSheet('sheet-import')">Cancel</button></div>
+    </div>
+    <div id="imp2" class="hidden">
+      <div id="imp-status" style="background:var(--green-bg);border:1px solid rgba(168,216,184,0.2);color:var(--green);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;margin-bottom:12px;"></div>
+      <div class="form-group"><label class="form-label">Date column</label><select class="form-select" id="m-date"></select></div>
+      <div class="form-group"><label class="form-label">Description column</label><select class="form-select" id="m-desc"></select></div>
+      <div class="form-group"><label class="form-label">Amount column</label><select class="form-select" id="m-amt"></select></div>
+      <div class="form-group"><label class="form-label">Amount sign</label><select class="form-select" id="m-sign"><option value="pos">Positive = expense</option><option value="neg">Negative = expense</option></select></div>
+      <div class="sheet-actions">
+        <button class="sheet-btn" onclick="showImpStep(1)">Back</button>
+        <button class="sheet-btn primary" onclick="previewCSV()">Preview</button>
+      </div>
+    </div>
+    <div id="imp3" class="hidden">
+      <div id="imp3-status" style="background:var(--green-bg);border:1px solid rgba(168,216,184,0.2);color:var(--green);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--text2);">Import to:</span>
+        <div class="toggle-row" style="flex:0;">
+          <button class="toggle-opt pers-on" id="imp-sec-pers" onclick="setImpSec('personal')" style="padding:6px 12px;">Personal</button>
+          <button class="toggle-opt" id="imp-sec-biz" onclick="setImpSec('business')" style="padding:6px 12px;">Business</button>
+        </div>
+      </div>
+      <div style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 10px;" id="imp-review"></div>
+      <div class="sheet-actions">
+        <button class="sheet-btn" onclick="showImpStep(2)">Back</button>
+        <button class="sheet-btn green" onclick="confirmImport()">Import all</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Menu Sheet -->
+<div class="sheet-overlay hidden" id="sheet-menu">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Menu</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+      <button class="sheet-btn" onclick="closeSheet('sheet-menu');openImport()">Import CSV</button>
+      <button class="sheet-btn" onclick="closeSheet('sheet-menu');downloadBackup()">Download backup</button>
+      <button class="sheet-btn" onclick="document.getElementById('restore-inp').click();closeSheet('sheet-menu')">Restore from backup</button>
+      <input type="file" id="restore-inp" accept=".json" style="display:none" onchange="restoreBackup(event)"/>
+      <button class="sheet-btn" onclick="closeSheet('sheet-menu');openSettings()">Settings (year range)</button>
+      <button class="sheet-btn" onclick="closeSheet('sheet-menu');openManageCats()">Manage categories</button>
+    </div>
+    <button class="sheet-btn" style="width:100%;" onclick="closeSheet('sheet-menu')">Close</button>
+  </div>
+</div>
+
+<!-- Manage Categories Sheet -->
+<div class="sheet-overlay hidden" id="sheet-cats">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Manage categories</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;" id="cat-type-toggle">
+      <button class="toggle-opt" style="flex:1;padding:8px;">Expense</button>
+      <button class="toggle-opt" style="flex:1;padding:8px;">Income</button>
+    </div>
+    <div id="cat-mgmt-list"></div>
+    <div class="form-group"><label class="form-label">Add new category</label><div style="display:flex;gap:8px;"><input class="form-input" placeholder="Category name" id="new-cat-name" style="flex:1;"/><button class="sheet-btn primary" style="flex:0;" onclick="addCategory()">Add</button></div></div>
+    <div class="sheet-actions"><button class="sheet-btn" style="width:100%;" onclick="closeSheet('sheet-cats')">Done</button></div>
+  </div>
+</div>
+
+<!-- Settings Sheet -->
+<div class="sheet-overlay hidden" id="sheet-settings">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Settings</div>
+    <div class="form-group"><label class="form-label">Financial year starts</label><select class="form-select" id="fy-month"><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select></div>
+    <div class="sheet-actions"><button class="sheet-btn" style="width:100%;" onclick="closeSheet('sheet-settings')">Done</button></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// STATE
+let state = {
+  currentTab: 'personal',
+  currentView: 'dashboard',
+  currentMonth: new Date().getMonth() + 1,
+  currentYear: new Date().getFullYear(),
+  pipelineMonth: new Date().getMonth() + 1,
+  pipelineYear: new Date().getFullYear(),
+  pipelineFilter: 'all',
+  searchQuery: '',
+  editingTxId: null,
+  editingGoalId: null,
+  editingPipeId: null,
+  txSection: 'personal',
+  txType: 'expense',
+  impSection: 'personal',
+  impStep: 1,
+  settings: { fyMonth: 1 }
+};
+
+let data = {
+  transactions: [],
+  goals: [],
+  pipeline: [],
+  categories: { expense: [], income: [] },
+  name: '',
+  bizName: ''
+};
+
+const COLORS = ['#a8c8f0', '#a8d8b8', '#f0b8cc', '#f0c878', '#b8a8f0', '#f09898'];
+const DEF_EXP_CATS = ['Groceries', 'Rent', 'Transport', 'Utilities', 'Dining', 'Entertainment', 'Shopping', 'Healthcare', 'Other'];
+const DEF_INC_CATS = ['Salary', 'Freelance', 'Investment', 'Bonus', 'Other'];
+let saveTimeout = null;
+let saveDot = document.getElementById('save-dot');
+
+// INIT
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+function load() {
+  const stored = localStorage.getItem('woodley-data');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      data = parsed;
+      state.settings = data.settings || { fyMonth: 1 };
+    } catch (e) {
+      console.error('Failed to load data', e);
+    }
+  } else {
+    data.categories.expense = [...DEF_EXP_CATS];
+    data.categories.income = [...DEF_INC_CATS];
+    save();
+  }
+
+  checkOnboarding();
+}
+
+function checkOnboarding() {
+  const obDone = localStorage.getItem('woodley-onboarded');
+  if (!obDone) {
+    document.getElementById('onboarding').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
+  } else {
+    document.getElementById('onboarding').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    renderAll();
+  }
+}
+
+function save() {
+  saveDot.classList.add('saving');
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    data.settings = state.settings;
+    localStorage.setItem('woodley-data', JSON.stringify(data));
+    saveDot.classList.remove('saving');
+  }, 500);
+}
+
+// ONBOARDING
+function nextOb(step) {
+  document.querySelectorAll('.ob-step').forEach(el => el.classList.remove('active'));
+  document.getElementById('ob' + step).classList.add('active');
+  document.querySelectorAll('.ob-dot').forEach((el, i) => {
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
+    else el.classList.remove('active', 'done');
+  });
+}
+
+function skipOb() { nextOb(3); }
+
+function finishOb() {
+  const name = document.getElementById('ob-name').value || 'User';
+  const bizName = document.getElementById('ob-biz').value || '';
+  const pBal = parseFloat(document.getElementById('ob-pbal').value) || 0;
+  const bBal = parseFloat(document.getElementById('ob-bbal').value) || 0;
+
+  data.name = name;
+  data.bizName = bizName;
+  data.categories = { expense: [...DEF_EXP_CATS], income: [...DEF_INC_CATS] };
+
+  if (pBal > 0) {
+    data.transactions.push({
+      id: 'init-' + Date.now(),
+      section: 'personal',
+      type: 'income',
+      amount: pBal,
+      date: new Date().toISOString().split('T')[0],
+      desc: 'Starting balance',
+      category: 'Other',
+      notes: ''
+    });
+  }
+  if (bBal > 0) {
+    data.transactions.push({
+      id: 'init-' + Date.now() + 1,
+      section: 'business',
+      type: 'income',
+      amount: bBal,
+      date: new Date().toISOString().split('T')[0],
+      desc: 'Starting balance',
+      category: 'Other',
+      notes: ''
+    });
+  }
+
+  ['g1s', 'g2s', 'g3s'].forEach((id, i) => {
+    const saved = parseFloat(document.getElementById(id).value) || 0;
+    const target = parseFloat(document.getElementById('g' + (i + 1) + 't').value) || 0;
+    if (target > 0) {
+      const names = ['Vacation / Travel', 'Pay off debt', 'Emergency fund'];
+      data.goals.push({
+        id: 'goal-' + i,
+        name: names[i],
+        saved,
+        target,
+        color: COLORS[i],
+        contributions: []
+      });
+    }
+  });
+
+  save();
+  localStorage.setItem('woodley-onboarded', 'true');
+  checkOnboarding();
+}
+
+// NAVIGATION
+function switchTab(tab) {
+  state.currentTab = tab;
+  document.querySelectorAll('.tab-pill').forEach(el => el.classList.remove('active'));
+  document.getElementById('tp-' + tab).classList.add('active');
+  if (state.currentView === 'pipeline' && state.currentTab === 'personal') {
+    switchView('dashboard');
+  }
+  renderAll();
+}
+
+function switchView(view) {
+  state.currentView = view;
+  state.searchQuery = '';
+  document.getElementById('search-inp').value = '';
+  document.getElementById('search-clr').classList.add('hidden');
+
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('view-' + view).classList.remove('hidden');
+
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  if (view === 'pipeline') {
+    document.getElementById('nav-' + 'pipeline').classList.add('active');
+  } else {
+    document.getElementById('nav-' + view).classList.add('active');
+  }
+
+  if (view === 'dashboard') renderDashboard();
+  else if (view === 'expenses') renderExpenses();
+  else if (view === 'goals') renderGoals();
+  else if (view === 'pipeline') renderPipeline();
+}
+
+// DASHBOARD
+function renderDashboard() {
+  const txs = getVisibleTxs();
+  const yr = state.currentYear;
+  const mo = state.currentMonth;
+  const inMo = txs.filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === yr && d.getMonth() + 1 === mo;
+  });
+
+  const spent = inMo.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  const income = inMo.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const flow = income - spent;
+
+  document.getElementById('s-spent').textContent = '$' + spent.toFixed(2);
+  document.getElementById('s-income').textContent = '$' + income.toFixed(2);
+  document.getElementById('s-flow').textContent = '$' + (flow < 0 ? '-' : '') + Math.abs(flow).toFixed(2);
+  document.getElementById('s-txcount').textContent = inMo.length;
+  document.getElementById('s-spent-sub').textContent = inMo.filter(t => t.type === 'expense').length + ' expenses';
+  document.getElementById('s-txsub').textContent = 'this month';
+
+  // Category breakdown
+  const cats = {};
+  inMo.filter(t => t.type === 'expense').forEach(t => {
+    cats[t.category] = (cats[t.category] || 0) + t.amount;
+  });
+
+  const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  const max = sorted.length > 0 ? sorted[0][1] : 1;
+
+  let catHtml = '';
+  sorted.forEach(([cat, amt]) => {
+    const pct = (amt / max * 100);
+    const color = amt > spent * 0.3 ? '#a8c8f0' : '#a8d8b8';
+    catHtml += `<div class="bar-row">
+      <div class="bar-header">
+        <span>${cat}</span>
+        <span style="font-weight:500;">$${amt.toFixed(2)}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>
+    </div>`;
+  });
+  document.getElementById('cat-bars').innerHTML = catHtml || '<div class="empty-state">No expenses this month</div>';
+
+  // Recent
+  let recentHtml = '';
+  inMo.slice(-5).reverse().forEach(t => {
+    recentHtml += renderTxRow(t);
+  });
+  document.getElementById('recent-txs').innerHTML = recentHtml || '<div class="empty-state">No transactions</div>';
+
+  populateDateSelects();
+}
+
+function renderExpenses() {
+  populateDateSelects(true);
+  renderExpenseList();
+}
+
+function renderExpenseList() {
+  const txs = getVisibleTxs();
+  const yr = state.currentYear;
+  const mo = state.currentMonth;
+  const filtered = txs.filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === yr && d.getMonth() + 1 === mo;
+  });
+
+  let searched = filtered;
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    searched = filtered.filter(t =>
+      t.desc.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q) ||
+      t.notes.toLowerCase().includes(q)
+    );
+  }
+
+  let html = '';
+  searched.forEach(t => {
+    html += renderTxRow(t);
+  });
+  document.getElementById('all-txs').innerHTML = html || '<div class="empty-state">No transactions</div>';
+}
+
+function renderTxRow(t) {
+  const d = new Date(t.date);
+  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const colorClass = t.type === 'income' ? 'cb-green' : (t.amount > 50 ? 'cb-blue' : 'cb-pink');
+  const symbol = t.type === 'income' ? '+' : '-';
+
+  return `<div class="tx-row">
+    <div class="tx-main">
+      <div class="tx-name">${t.desc}</div>
+      <div class="tx-sub" style="display:flex;gap:6px;"><span class="cat-badge ${colorClass}">${t.category}</span><span>${dateStr}</span></div>
+    </div>
+    <div style="text-align:right;">
+      <div class="tx-amount" style="color:${t.type === 'income' ? '#a8d8b8' : '#f0b8cc'};">${symbol}$${t.amount.toFixed(2)}</div>
+    </div>
+    <div class="tx-actions">
+      <button class="tx-edit" onclick="editTx('${t.id}')">edit</button>
+      <button class="tx-del" onclick="delTx('${t.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+
+// GOALS
+function renderGoals() {
+  const goalsHtml = data.goals.map(g => {
+    const pct = g.target > 0 ? Math.min(100, (g.saved / g.target) * 100) : 0;
+    const remaining = Math.max(0, g.target - g.saved);
+
+    let contribHtml = '';
+    if (g.contributions && g.contributions.length > 0) {
+      const recent = g.contributions.slice(-3).reverse();
+      contribHtml = '<div class="goal-hist">' + recent.map(c =>
+        `<div class="goal-hist-row"><span>${new Date(c.date).toLocaleDateString('en-US', {month:'short',day:'numeric'})}</span><span class="goal-hist-amt">+$${c.amount.toFixed(2)}</span></div>`
+      ).join('') + '</div>';
+    }
+
+    return `<div class="goal-card" style="border-color:${g.color}33;">
+      <div class="goal-name-row">
+        <div class="goal-name">${g.name}</div>
+        <div class="goal-pct-badge">${Math.floor(pct)}%</div>
+      </div>
+      <div class="goal-amts">
+        <span>$${g.saved.toFixed(2)}</span>
+        <span style="color:var(--text2);">/ $${g.target.toFixed(2)}</span>
+      </div>
+      <div class="goal-bar-track">
+        <div class="goal-bar-fill" style="width:${pct}%;background:${g.color};"></div>
+      </div>
+      <div class="goal-remaining">Remaining: $${remaining.toFixed(2)}</div>
+      <div class="goal-contrib-row">
+        <input class="goal-contrib-input" type="number" placeholder="Add amount" id="g-contrib-${g.id}" step="0.01" inputmode="decimal"/>
+        <button class="goal-contrib-btn" onclick="contributeGoal('${g.id}')">Add</button>
+        <button class="goal-contrib-btn" style="background:rgba(240,184,204,0.1);border-color:rgba(240,184,204,0.3);color:#f0b8cc;" onclick="editGoal('${g.id}')">Edit</button>
+      </div>
+      ${contribHtml}
+    </div>`;
+  }).join('');
+
+  document.getElementById('goals-list').innerHTML = goalsHtml;
+}
+
+// PIPELINE
+function renderPipeline() {
+  populateDateSelectsPipe();
+
+  const yr = state.pipelineYear;
+  const mo = state.pipelineMonth;
+
+  const inMonth = data.pipeline.filter(p => p.month === mo && (p.year || new Date().getFullYear()) === yr);
+  const pipes = inMonth.filter(p => state.pipelineFilter === 'all' || p.status === state.pipelineFilter);
+
+  const stats = {
+    pending: inMonth.filter(p => p.status === 'pending').reduce((a, p) => a + p.amount, 0),
+    invoiced: inMonth.filter(p => p.status === 'invoiced').reduce((a, p) => a + p.amount, 0),
+    received: inMonth.filter(p => p.status === 'received').reduce((a, p) => a + p.amount, 0),
+  };
+
+  document.getElementById('pipe-summary').innerHTML = `
+    <div class="summary-card warn"><div class="summary-label">Pending</div><div class="summary-value warn" style="font-size:18px;">$${stats.pending.toFixed(2)}</div></div>
+    <div class="summary-card blue"><div class="summary-label">Invoiced</div><div class="summary-value blue" style="font-size:18px;">$${stats.invoiced.toFixed(2)}</div></div>
+    <div class="summary-card green"><div class="summary-label">Received</div><div class="summary-value green" style="font-size:18px;">$${stats.received.toFixed(2)}</div></div>
+    <div class="summary-card pink"><div class="summary-label">Total</div><div class="summary-value pink" style="font-size:18px;">$${(stats.pending + stats.invoiced + stats.received).toFixed(2)}</div></div>
+  `;
+
+  const html = pipes.map(p => {
+    const statusClass = 'st-' + p.status;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `<div class="pipe-row">
+      <div class="pipe-main">
+        <div class="pipe-client">${p.client}</div>
+        <div class="pipe-sub">${months[p.month - 1]} ${p.year || new Date().getFullYear()} • ${p.notes || 'No notes'}</div>
+      </div>
+      <div class="pipe-amount">$${p.amount.toFixed(2)}</div>
+      <button class="status-btn ${statusClass}" onclick="cyclePipeStatus('${p.id}')">${p.status}</button>
+      <button class="tx-del" onclick="delPipe('${p.id}')">🗑</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('pipe-list').innerHTML = html || '<div class="empty-state">No items in this month</div>';
+}
+
+function setPipeFilter(f) {
+  state.pipelineFilter = f;
+  document.querySelectorAll('[id^="ptab-"]').forEach(el => el.classList.remove('active'));
+  document.getElementById('ptab-' + f).classList.add('active');
+  renderPipeline();
+}
+
+function populateDateSelectsPipe() {
+  const yearSel = document.getElementById('year-sel-pipe');
+  const monthSel = document.getElementById('month-sel-pipe');
+
+  let yHtml = '';
+  for (let y = state.pipelineYear - 2; y <= state.pipelineYear + 5; y++) {
+    yHtml += `<option value="${y}"${y === state.pipelineYear ? ' selected' : ''}>${y}</option>`;
+  }
+  yearSel.innerHTML = yHtml;
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  let mHtml = '';
+  months.forEach((m, i) => {
+    mHtml += `<option value="${i + 1}"${i + 1 === state.pipelineMonth ? ' selected' : ''}>${m}</option>`;
+  });
+  monthSel.innerHTML = mHtml;
+}
+
+function onYearChangePipe() {
+  state.pipelineYear = parseInt(document.getElementById('year-sel-pipe').value);
+  renderPipeline();
+}
+
+function onMonthChangePipe() {
+  state.pipelineMonth = parseInt(document.getElementById('month-sel-pipe').value);
+  renderPipeline();
+}
+
+// TRANSACTIONS
+function getVisibleTxs() {
+  return data.transactions.filter(t => t.section === state.currentTab);
+}
+
+function onFabTap() {
+  if (state.currentView === 'pipeline') {
+    openAddPipe();
+  } else if (state.currentView === 'goals') {
+    openAddGoal();
+  } else {
+    openAddTx();
+  }
+}
+
+function openAddTx() {
+  state.editingTxId = null;
+  state.txSection = state.currentTab;
+  state.txType = 'expense';
+  document.getElementById('sec-pers').classList.add('pers-on');
+  document.getElementById('sec-biz').classList.remove('biz-on');
+  document.getElementById('type-exp').classList.add('exp-on');
+  document.getElementById('type-inc').classList.remove('inc-on');
+
+  document.getElementById('tx-amount').value = '';
+  document.getElementById('tx-date').valueAsDate = new Date();
+  document.getElementById('tx-desc').value = '';
+  document.getElementById('tx-notes').value = '';
+
+  const cats = state.txType === 'expense' ? data.categories.expense : data.categories.income;
+  document.getElementById('tx-cat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+
+  document.getElementById('tx-sheet-title').textContent = 'Add transaction';
+  document.getElementById('tx-save-btn').textContent = 'Save';
+  openSheet('sheet-tx');
+}
+
+function editTx(id) {
+  const tx = data.transactions.find(t => t.id === id);
+  if (!tx) return;
+
+  state.editingTxId = id;
+  state.txSection = tx.section;
+  state.txType = tx.type;
+
+  document.getElementById('sec-pers').classList.toggle('pers-on', tx.section === 'personal');
+  document.getElementById('sec-biz').classList.toggle('biz-on', tx.section === 'business');
+  document.getElementById('type-exp').classList.toggle('exp-on', tx.type === 'expense');
+  document.getElementById('type-inc').classList.toggle('inc-on', tx.type === 'income');
+
+  document.getElementById('tx-amount').value = tx.amount;
+  document.getElementById('tx-date').value = tx.date;
+  document.getElementById('tx-desc').value = tx.desc;
+  document.getElementById('tx-notes').value = tx.notes;
+
+  const cats = state.txType === 'expense' ? data.categories.expense : data.categories.income;
+  document.getElementById('tx-cat').innerHTML = cats.map(c => `<option${c === tx.category ? ' selected' : ''}>${c}</option>`).join('');
+
+  document.getElementById('tx-sheet-title').textContent = 'Edit transaction';
+  document.getElementById('tx-save-btn').textContent = 'Update';
+  openSheet('sheet-tx');
+}
+
+function delTx(id) {
+  if (confirm('Delete this transaction?')) {
+    data.transactions = data.transactions.filter(t => t.id !== id);
+    save();
+    renderAll();
+  }
+}
+
+function saveTx() {
+  const amt = parseFloat(document.getElementById('tx-amount').value);
+  const date = document.getElementById('tx-date').value;
+  const desc = document.getElementById('tx-desc').value.trim();
+  const cat = document.getElementById('tx-cat').value;
+  const notes = document.getElementById('tx-notes').value.trim();
+
+  if (!amt || !date || !desc) {
+    alert('Please fill in amount, date, and description');
+    return;
+  }
+
+  if (state.editingTxId) {
+    const tx = data.transactions.find(t => t.id === state.editingTxId);
+    if (tx) {
+      tx.amount = amt;
+      tx.date = date;
+      tx.desc = desc;
+      tx.category = cat;
+      tx.notes = notes;
+    }
+  } else {
+    data.transactions.push({
+      id: 'tx-' + Date.now(),
+      section: state.txSection,
+      type: state.txType,
+      amount: amt,
+      date,
+      desc,
+      category: cat,
+      notes
+    });
+  }
+
+  save();
+  closeSheet('sheet-tx');
+  renderAll();
+}
+
+function setSection(sec) {
+  state.txSection = sec;
+  document.getElementById('sec-pers').classList.toggle('pers-on', sec === 'personal');
+  document.getElementById('sec-biz').classList.toggle('biz-on', sec === 'business');
+}
+
+function setType(type) {
+  state.txType = type;
+  document.getElementById('type-exp').classList.toggle('exp-on', type === 'expense');
+  document.getElementById('type-inc').classList.toggle('inc-on', type === 'income');
+
+  const cats = type === 'expense' ? data.categories.expense : data.categories.income;
+  document.getElementById('tx-cat').innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+}
+
+// GOALS
+function openAddGoal() {
+  state.editingGoalId = null;
+  document.getElementById('g-name').value = '';
+  document.getElementById('g-saved').value = '';
+  document.getElementById('g-target').value = '';
+
+  let colorHtml = '';
+  COLORS.forEach((c, i) => {
+    colorHtml += `<div class="color-swatch${i === 0 ? ' selected' : ''}" style="background:${c};" onclick="selectColor('${c}')"></div>`;
+  });
+  document.getElementById('g-colors').innerHTML = colorHtml;
+
+  document.getElementById('goal-sheet-title').textContent = 'New goal';
+  document.getElementById('g-save-btn').textContent = 'Save goal';
+  openSheet('sheet-goal');
+}
+
+function editGoal(id) {
+  const goal = data.goals.find(g => g.id === id);
+  if (!goal) return;
+
+  state.editingGoalId = id;
+  document.getElementById('g-name').value = goal.name;
+  document.getElementById('g-saved').value = goal.saved;
+  document.getElementById('g-target').value = goal.target;
+
+  let colorHtml = '';
+  COLORS.forEach(c => {
+    colorHtml += `<div class="color-swatch${c === goal.color ? ' selected' : ''}" style="background:${c};" onclick="selectColor('${c}')"></div>`;
+  });
+  document.getElementById('g-colors').innerHTML = colorHtml;
+
+  document.getElementById('goal-sheet-title').textContent = 'Edit goal';
+  document.getElementById('g-save-btn').textContent = 'Update goal';
+  openSheet('sheet-goal');
+}
+
+function selectColor(c) {
+  document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('selected'));
+  event.target.classList.add('selected');
+  event.target.dataset.selected = c;
+}
+
+function saveGoal() {
+  const name = document.getElementById('g-name').value.trim();
+  const saved = parseFloat(document.getElementById('g-saved').value) || 0;
+  const target = parseFloat(document.getElementById('g-target').value) || 0;
+  const color = document.querySelector('.color-swatch.selected').style.background;
+
+  if (!name || !target) {
+    alert('Please enter a goal name and target');
+    return;
+  }
+
+  if (state.editingGoalId) {
+    const goal = data.goals.find(g => g.id === state.editingGoalId);
+    if (goal) {
+      goal.name = name;
+      goal.saved = saved;
+      goal.target = target;
+      goal.color = color;
+    }
+  } else {
+    data.goals.push({
+      id: 'goal-' + Date.now(),
+      name,
+      saved,
+      target,
+      color,
+      contributions: []
+    });
+  }
+
+  save();
+  closeSheet('sheet-goal');
+  renderGoals();
+}
+
+function contributeGoal(id) {
+  const amt = parseFloat(document.getElementById('g-contrib-' + id).value);
+  if (!amt || amt <= 0) {
+    alert('Enter a valid amount');
+    return;
+  }
+
+  const goal = data.goals.find(g => g.id === id);
+  if (goal) {
+    goal.saved += amt;
+    if (!goal.contributions) goal.contributions = [];
+    goal.contributions.push({
+      date: new Date().toISOString().split('T')[0],
+      amount: amt
+    });
+    document.getElementById('g-contrib-' + id).value = '';
+    save();
+    renderGoals();
+  }
+}
+
+// PIPELINE
+function openAddPipe() {
+  state.editingPipeId = null;
+  document.getElementById('p-client').value = '';
+  document.getElementById('p-amount').value = '';
+  document.getElementById('p-notes').value = '';
+  document.getElementById('p-status').value = 'pending';
+
+  let yHtml = '';
+  for (let y = state.pipelineYear; y <= state.pipelineYear + 5; y++) {
+    yHtml += `<option value="${y}"${y === state.pipelineYear ? ' selected' : ''}>${y}</option>`;
+  }
+  document.getElementById('p-year').innerHTML = yHtml;
+
+  let moHtml = '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  months.forEach((m, i) => {
+    moHtml += `<option value="${i + 1}"${i + 1 === state.pipelineMonth ? ' selected' : ''}>${m}</option>`;
+  });
+  document.getElementById('p-month').innerHTML = moHtml;
+
+  document.getElementById('pipe-sheet-title').textContent = 'Add client';
+  document.getElementById('p-save-btn').textContent = 'Save';
+  openSheet('sheet-pipe');
+}
+
+function savePipe() {
+  const client = document.getElementById('p-client').value.trim();
+  const amt = parseFloat(document.getElementById('p-amount').value);
+  const year = parseInt(document.getElementById('p-year').value);
+  const month = parseInt(document.getElementById('p-month').value);
+  const notes = document.getElementById('p-notes').value.trim();
+  const status = document.getElementById('p-status').value;
+
+  if (!client || !amt || !year || !month) {
+    alert('Please fill in client, amount, year, and month');
+    return;
+  }
+
+  if (state.editingPipeId) {
+    const pipe = data.pipeline.find(p => p.id === state.editingPipeId);
+    if (pipe) {
+      pipe.client = client;
+      pipe.amount = amt;
+      pipe.year = year;
+      pipe.month = month;
+      pipe.notes = notes;
+      pipe.status = status;
+    }
+  } else {
+    data.pipeline.push({
+      id: 'pipe-' + Date.now(),
+      client,
+      amount: amt,
+      year,
+      month,
+      notes,
+      status
+    });
+  }
+
+  save();
+  closeSheet('sheet-pipe');
+  renderPipeline();
+}
+
+function cyclePipeStatus(id) {
+  const pipe = data.pipeline.find(p => p.id === id);
+  if (pipe) {
+    const statuses = ['pending', 'invoiced', 'received'];
+    const idx = statuses.indexOf(pipe.status);
+    pipe.status = statuses[(idx + 1) % 3];
+    save();
+    renderPipeline();
+  }
+}
+
+function delPipe(id) {
+  if (confirm('Delete this client?')) {
+    data.pipeline = data.pipeline.filter(p => p.id !== id);
+    save();
+    renderPipeline();
+  }
+}
+
+// SEARCH
+function onSearch() {
+  const q = document.getElementById('search-inp').value.trim();
+  state.searchQuery = q;
+  document.getElementById('search-clr').classList.toggle('hidden', !q);
+  renderExpenseList();
+}
+
+function clearSearch() {
+  state.searchQuery = '';
+  document.getElementById('search-inp').value = '';
+  document.getElementById('search-clr').classList.add('hidden');
+  renderExpenseList();
+}
+
+// DATE SELECTS
+function populateDateSelects(exp = false) {
+  const prefix = exp ? '-exp' : '';
+  const yearSel = document.getElementById('year-sel' + prefix);
+  const monthSel = document.getElementById('month-sel' + prefix);
+
+  let yHtml = '';
+  for (let y = state.currentYear - 5; y <= state.currentYear + 2; y++) {
+    yHtml += `<option value="${y}"${y === state.currentYear ? ' selected' : ''}>${y}</option>`;
+  }
+  yearSel.innerHTML = yHtml;
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  let mHtml = '';
+  months.forEach((m, i) => {
+    mHtml += `<option value="${i + 1}"${i + 1 === state.currentMonth ? ' selected' : ''}>${m}</option>`;
+  });
+  monthSel.innerHTML = mHtml;
+}
+
+function onYearChange() {
+  state.currentYear = parseInt(document.getElementById('year-sel').value);
+  renderDashboard();
+}
+
+function onYearChangeExp() {
+  state.currentYear = parseInt(document.getElementById('year-sel-exp').value);
+  renderExpenseList();
+}
+
+function onMonthChange() {
+  state.currentMonth = parseInt(document.getElementById('month-sel').value);
+  renderDashboard();
+}
+
+function onMonthChangeExp() {
+  state.currentMonth = parseInt(document.getElementById('month-sel-exp').value);
+  renderExpenseList();
+}
+
+// MENU & SHEETS
+function openMenu() {
+  openSheet('sheet-menu');
+}
+
+function openSheet(id) {
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function closeSheet(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+// CSV IMPORT
+function openImport() {
+  state.impStep = 1;
+  showImpStep(1);
+  openSheet('sheet-import');
+}
+
+function handleCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const csv = e.target.result;
+    const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length < 2) {
+      alert('CSV file is empty');
+      return;
+    }
+
+    const header = lines[0].split(',').map(h => h.trim());
+    window.csvData = { header, lines: lines.slice(1) };
+
+    let opts = '';
+    header.forEach((h, i) => {
+      opts += `<option value="${i}">${h}</option>`;
+    });
+    document.getElementById('m-date').innerHTML = opts;
+    document.getElementById('m-desc').innerHTML = opts;
+    document.getElementById('m-amt').innerHTML = opts;
+
+    document.getElementById('imp-status').textContent = `Loaded ${lines.length - 1} rows`;
+    showImpStep(2);
+  };
+  reader.readAsText(file);
+}
+
+function previewCSV() {
+  const dateIdx = parseInt(document.getElementById('m-date').value);
+  const descIdx = parseInt(document.getElementById('m-desc').value);
+  const amtIdx = parseInt(document.getElementById('m-amt').value);
+  const sign = document.getElementById('m-sign').value;
+
+  window.csvImport = window.csvData.lines.slice(0, 10).map(line => {
+    const cols = line.split(',').map(c => c.trim());
+    return {
+      date: cols[dateIdx] || '',
+      desc: cols[descIdx] || '',
+      amount: parseFloat(cols[amtIdx]) || 0,
+      type: (sign === 'pos' ? cols[amtIdx][0] === '-' : cols[amtIdx][0] !== '-') ? 'expense' : 'income'
+    };
+  });
+
+  document.getElementById('imp3-status').textContent = `Preview of ${window.csvData.lines.length} rows`;
+
+  let html = '';
+  window.csvImport.forEach(row => {
+    const cats = row.type === 'expense' ? data.categories.expense : data.categories.income;
+    const typeBadge = `<button class="ir-type irt-${row.type}" onclick="toggleImpType(this)">${row.type}</button>`;
+    html += `<div class="import-review-row">
+      <span class="ir-date">${row.date}</span>
+      <span class="ir-desc">${row.desc}</span>
+      <input class="ir-amt" type="number" step="0.01" value="${Math.abs(row.amount)}" onchange="updateImpAmt(this)"/>
+      <select class="ir-cat" onchange="updateImpCat(this)">${cats.map(c => `<option>${c}</option>`).join('')}</select>
+      ${typeBadge}
+    </div>`;
+  });
+  document.getElementById('imp-review').innerHTML = html;
+  showImpStep(3);
+}
+
+function showImpStep(step) {
+  document.getElementById('imp1').classList.add('hidden');
+  document.getElementById('imp2').classList.add('hidden');
+  document.getElementById('imp3').classList.add('hidden');
+  document.getElementById('imp' + step).classList.remove('hidden');
+}
+
+function setImpSec(sec) {
+  state.impSection = sec;
+  document.getElementById('imp-sec-pers').classList.toggle('pers-on', sec === 'personal');
+  document.getElementById('imp-sec-biz').classList.toggle('biz-on', sec === 'business');
+}
+
+function confirmImport() {
+  if (!window.csvImport || window.csvImport.length === 0) return;
+
+  const rows = document.querySelectorAll('#imp-review .import-review-row');
+  rows.forEach((row, idx) => {
+    const imp = window.csvImport[idx];
+    const amt = parseFloat(row.querySelector('.ir-amt').value);
+    const cat = row.querySelector('.ir-cat').value;
+    const typeBtn = row.querySelector('.ir-type');
+    const type = typeBtn.classList.contains('irt-expense') ? 'expense' : 'income';
+
+    data.transactions.push({
+      id: 'import-' + Date.now() + idx,
+      section: state.impSection,
+      type,
+      amount: amt,
+      date: imp.date,
+      desc: imp.desc,
+      category: cat,
+      notes: 'Imported from CSV'
+    });
+  });
+
+  save();
+  closeSheet('sheet-import');
+  renderExpenseList();
+}
+
+function toggleImpType(btn) {
+  if (btn.classList.contains('irt-expense')) {
+    btn.classList.remove('irt-expense');
+    btn.classList.add('irt-income');
+    btn.textContent = 'income';
+  } else {
+    btn.classList.remove('irt-income');
+    btn.classList.add('irt-expense');
+    btn.textContent = 'expense';
+  }
+}
+
+// CATEGORIES
+function openManageCats() {
+  openSheet('sheet-cats');
+  renderCatMgmt();
+}
+
+function renderCatMgmt() {
+  const cats = data.categories.expense;
+  let html = '';
+  cats.forEach(cat => {
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="flex:1;">${cat}</span>
+      <button class="tx-del" onclick="delCategory('${cat}', 'expense')">🗑</button>
+    </div>`;
+  });
+  document.getElementById('cat-mgmt-list').innerHTML = html;
+}
+
+function addCategory() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  if (!name) return;
+
+  const cats = data.categories.expense;
+  if (!cats.includes(name)) {
+    cats.push(name);
+    save();
+    document.getElementById('new-cat-name').value = '';
+    renderCatMgmt();
+  }
+}
+
+function delCategory(cat, type) {
+  if (confirm(`Delete category "${cat}"?`)) {
+    data.categories[type] = data.categories[type].filter(c => c !== cat);
+    save();
+    renderCatMgmt();
+  }
+}
+
+// SETTINGS
+function openSettings() {
+  document.getElementById('fy-month').value = state.settings.fyMonth;
+  openSheet('sheet-settings');
+}
+
+// BACKUP/RESTORE
+function downloadBackup() {
+  const backup = JSON.stringify(data, null, 2);
+  const blob = new Blob([backup], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `woodley-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function convertOldBackup(oldData) {
+  try {
+    // Convert Sanctuary (old) format to Woodley Money format
+    const converted = {
+      transactions: [],
+      goals: [],
+      pipeline: [],
+      categories: {
+        expense: Array.isArray(oldData.personalCats) ? oldData.personalCats : DEF_EXP_CATS,
+        income: Array.isArray(oldData.bizCats) ? oldData.bizCats : DEF_INC_CATS
+      },
+      name: oldData.userName || 'User',
+      bizName: oldData.bizName || '',
+      settings: { fyMonth: 1 }
+    };
+
+    // Convert expenses to transactions
+    if (oldData.expenses && Array.isArray(oldData.expenses)) {
+      converted.transactions = oldData.expenses.filter(exp => exp).map(exp => {
+        try {
+          return {
+            id: 'tx-' + (exp.id || Date.now()),
+            section: exp.section || 'personal',
+            type: exp.type || 'expense',
+            amount: parseFloat(exp.amount) || 0,
+            date: exp.date || new Date().toISOString().split('T')[0],
+            desc: exp.desc || '',
+            category: exp.cat || 'Other',
+            notes: exp.notes || ''
+          };
+        } catch (e) {
+          console.warn('Skipped invalid transaction:', exp);
+          return null;
+        }
+      }).filter(t => t);
+    }
+
+    // Copy goals
+    if (oldData.goals && Array.isArray(oldData.goals)) {
+      converted.goals = oldData.goals.filter(g => g).map(g => {
+        try {
+          return {
+            id: 'goal-' + (g.id || Date.now()),
+            name: g.name || 'Goal',
+            saved: parseFloat(g.saved) || 0,
+            target: parseFloat(g.target) || 0,
+            color: g.color || '#a8c8f0',
+            contributions: Array.isArray(g.contributions) ? g.contributions : []
+          };
+        } catch (e) {
+          console.warn('Skipped invalid goal:', g);
+          return null;
+        }
+      }).filter(g => g);
+    }
+
+    // Convert pipeline
+    if (oldData.pipeline && Array.isArray(oldData.pipeline)) {
+      converted.pipeline = oldData.pipeline.filter(p => p).map(p => {
+        try {
+          let month = p.month;
+          // Handle month format: "2026-05" → 5, or just "5"
+          if (typeof month === 'string' && month.includes('-')) {
+            month = parseInt(month.split('-')[1]) || 1;
+          } else {
+            month = parseInt(month) || 1;
+          }
+
+          return {
+            id: 'pipe-' + (p.id || Date.now()),
+            client: p.client || '',
+            amount: parseFloat(p.amount) || 0,
+            month: month,
+            year: p.year || new Date().getFullYear(),
+            notes: p.notes || '',
+            status: p.status || 'pending'
+          };
+        } catch (e) {
+          console.warn('Skipped invalid pipeline item:', p);
+          return null;
+        }
+      }).filter(p => p);
+    }
+
+    return converted;
+  } catch (e) {
+    console.error('Conversion error:', e);
+    return null;
+  }
+}
+
+function restoreBackup(event) {
+  const file = event.target.files[0];
+  if (!file) {
+    alert('No file selected');
+    return;
+  }
+
+  // Show loading state
+  const btn = event.target;
+  btn.disabled = true;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      console.log('Starting restore...');
+
+      // Parse JSON
+      const parsed = JSON.parse(e.target.result);
+      console.log('JSON parsed, transactions:', parsed.transactions?.length || 0);
+
+      // Minimal validation - accept whatever structure is there
+      const importedData = {
+        transactions: parsed.transactions || [],
+        goals: parsed.goals || [],
+        pipeline: parsed.pipeline || [],
+        categories: parsed.categories || { expense: DEF_EXP_CATS, income: DEF_INC_CATS },
+        name: parsed.name || 'User',
+        bizName: parsed.bizName || '',
+        settings: parsed.settings || { fyMonth: 1 }
+      };
+
+      console.log('Saving to localStorage...');
+
+      // Save in chunks to avoid blocking
+      localStorage.setItem('woodley-onboarded', 'true');
+      localStorage.setItem('woodley-data', JSON.stringify(importedData));
+
+      console.log('Save complete!');
+
+      document.getElementById('restore-inp').value = '';
+      btn.disabled = false;
+
+      const msg = `✓ Data saved!\n\n${importedData.transactions.length} transactions\n${importedData.goals.length} goals\n${importedData.pipeline.length} pipeline\n\nNow REFRESH the page (F5) to load your data.`;
+      alert(msg);
+
+    } catch (err) {
+      console.error('Restore failed:', err);
+      btn.disabled = false;
+      alert(`Error:\n${err.message}`);
+    }
+  };
+
+  reader.onerror = () => {
+    btn.disabled = false;
+    alert('Error reading file');
+  };
+
+  reader.readAsText(file);
+}
+
+function renderAll() {
+  if (state.currentView === 'dashboard') renderDashboard();
+  else if (state.currentView === 'expenses') renderExpenseList();
+  else if (state.currentView === 'goals') renderGoals();
+  else if (state.currentView === 'pipeline') renderPipeline();
+
+  const hasBusinessContent = data.pipeline.length > 0 || data.transactions.some(t => t.section === 'business');
+  document.getElementById('nav-pipeline').classList.toggle('hidden', !hasBusinessContent && state.currentTab === 'personal');
+}
+
+// Init
+load();
+</script>
+</body>
+</html>
