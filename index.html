@@ -577,6 +577,7 @@ let currentUser = null;
 let authMode = 'signin';
 let realtimeChannel = null;
 let refreshTimeout = null;
+let bulkSyncInProgress = false;
 
 // INIT
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -819,6 +820,7 @@ async function insertInChunks(table, rows, chunkSize = 200) {
 
 async function pushAllToSupabase() {
   if (!currentUser) return { ok: false, error: 'No signed-in user' };
+  bulkSyncInProgress = true;
   try {
     await supaUpsertProfile();
 
@@ -865,6 +867,8 @@ async function pushAllToSupabase() {
   } catch (e) {
     console.error('Push to Supabase failed:', e);
     return { ok: false, error: e.message };
+  } finally {
+    bulkSyncInProgress = false;
   }
 }
 
@@ -947,8 +951,12 @@ function setupRealtimeSync() {
 }
 
 function refreshFromCloud() {
+  // Ignore live updates while a bulk push is in flight, otherwise a half-written
+  // snapshot overwrites the complete local data mid-restore
+  if (bulkSyncInProgress) return;
   clearTimeout(refreshTimeout);
   refreshTimeout = setTimeout(async () => {
+    if (bulkSyncInProgress) return;
     const loaded = await supabaseLoadAll();
     if (loaded) {
       delete loaded._profileExists;
@@ -2044,7 +2052,16 @@ async function restoreBackup(event) {
       if (!pushResult.ok) {
         alert(`⚠ Saved locally, but syncing to your account FAILED:\n\n${pushResult.error}\n\nYour data is showing below but may not be backed up to the cloud yet. Screenshot this error and share it.`);
       } else {
-        alert(`✓ Restored and synced!\n${data.transactions.length} transactions\n${data.goals.length} goals\n${data.pipeline.length} pipeline items`);
+        // Read back from the database to confirm what actually persisted
+        const verify = await supabaseLoadAll();
+        const cloudTx = verify ? verify.transactions.length : 0;
+        const cloudGoals = verify ? verify.goals.length : 0;
+        const cloudPipe = verify ? verify.pipeline.length : 0;
+        alert(
+          `✓ Restore complete.\n\n` +
+          `Sent to cloud:\n${data.transactions.length} transactions, ${data.goals.length} goals, ${data.pipeline.length} pipeline\n\n` +
+          `Confirmed in cloud:\n${cloudTx} transactions, ${cloudGoals} goals, ${cloudPipe} pipeline`
+        );
       }
 
       document.getElementById('onboarding').classList.add('hidden');
