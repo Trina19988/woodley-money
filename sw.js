@@ -1,4 +1,4 @@
-const CACHE_NAME = 'woodley-v1';
+const CACHE_NAME = 'woodley-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -15,6 +15,10 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('/index.html')))
+    fetch(e.request).then(response => {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+      return response;
+    }).catch(() => caches.match(e.request).then(cached => cached || caches.match('/index.html')))
   );
 });
