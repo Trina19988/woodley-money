@@ -170,17 +170,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .goal-setup-hdr{font-size:13px;color:var(--text);margin-bottom:8px;}
 .empty-state{padding:24px;color:var(--text3);font-size:13px;text-align:center;}
 .info-note{font-size:11px;color:var(--text3);padding:10px 0;}
+.cat-filter-badge{display:inline-flex;align-items:center;gap:6px;background:var(--pink-bg);border:1px solid rgba(240,184,204,0.25);color:var(--pink);font-size:12px;padding:6px 10px;border-radius:14px;margin-bottom:10px;}
+.cat-filter-badge button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;font-family:var(--font);}
 .auth-link{color:var(--blue);cursor:pointer;text-decoration:underline;}
 .auth-error{color:var(--danger);font-size:12px;margin-bottom:10px;min-height:16px;}
 
 /* Desktop layout: sidebar nav + wide dashboard, phone keeps the mobile layout above */
+.desktop-only{display:none;}
+.sidebar-cats-section{display:none;}
 @media (min-width: 900px) {
   .header{padding:0 28px;height:64px;}
   .logo{font-size:20px;}
+  .desktop-only{display:inline-block;}
   .bottom-nav{
     position:fixed;top:0;left:0;bottom:0;width:210px;
-    flex-direction:column;justify-content:flex-start;gap:2px;
-    padding-top:calc(80px + var(--safe-top));padding-bottom:16px;
+    flex-direction:column;justify-content:flex-start;align-items:stretch;gap:2px;
+    padding-top:calc(80px + var(--safe-top));padding-bottom:16px;overflow-y:auto;
     border-top:none;border-right:1px solid var(--border);
   }
   .nav-item{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 24px;font-size:13px;}
@@ -191,6 +196,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   .sheet-overlay{align-items:center;justify-content:center;}
   .sheet{border-radius:20px;max-width:480px;width:92%;max-height:85vh;padding:26px;}
   .sheet-handle{display:none;}
+  .sidebar-cats-section{display:block;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+  .sidebar-cats-label{font-size:10px;font-weight:500;letter-spacing:1.5px;color:var(--text3);padding:0 24px 8px;text-transform:uppercase;}
+  .sidebar-cat-item{display:flex;align-items:center;gap:8px;padding:8px 24px;cursor:pointer;color:var(--text2);font-size:12px;border:none;background:none;width:100%;text-align:left;font-family:var(--font);}
+  .sidebar-cat-item:hover{background:var(--bg3);color:var(--text);}
+  .sidebar-cat-item.active{color:var(--blue);}
+  .sidebar-cat-item.biz.active{color:var(--green);}
+  .sidebar-cat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .sidebar-cat-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sidebar-cat-amt{font-size:11px;opacity:0.7;}
 }
 </style>
 </head>
@@ -260,6 +274,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <button class="tab-pill biz" id="tp-business" onclick="switchTab('business')">Business</button>
     </div>
     <div class="header-actions">
+      <button class="icon-btn desktop-only" onclick="openSettings()">Settings</button>
+      <button class="icon-btn desktop-only" onclick="downloadBackup()">Backup</button>
+      <button class="icon-btn desktop-only" onclick="document.getElementById('restore-inp').click()">Restore</button>
       <div class="save-dot" id="save-dot"></div>
       <button class="icon-btn" onclick="openMenu()">&#8942;</button>
     </div>
@@ -292,6 +309,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <div class="period-bar">
         <select class="year-select" id="year-sel-exp" onchange="onYearChangeExp()" style="width:80px;"></select>
         <select class="period-select" id="month-sel-exp" onchange="onMonthChangeExp()"></select>
+      </div>
+      <div class="cat-filter-badge hidden" id="cat-filter-badge">
+        Category: <span id="cat-filter-name"></span>
+        <button onclick="clearCategoryFilter()">&times;</button>
       </div>
       <div class="search-bar">
         <span style="color:var(--text3);">🔍</span>
@@ -340,6 +361,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
     <button class="nav-item hidden" id="nav-pipeline" onclick="switchView('pipeline')">
       <div class="nav-icon">📈</div>Pipeline
     </button>
+    <div class="sidebar-cats-section">
+      <div class="sidebar-cats-label">Categories</div>
+      <div id="sidebar-cats"></div>
+    </div>
   </div>
 </div>
 
@@ -518,6 +543,7 @@ let state = {
   pipelineYear: new Date().getFullYear(),
   pipelineFilter: 'all',
   searchQuery: '',
+  categoryFilter: null,
   editingTxId: null,
   editingGoalId: null,
   editingPipeId: null,
@@ -1028,9 +1054,10 @@ function switchTab(tab) {
   renderAll();
 }
 
-function switchView(view) {
+function switchView(view, keepCategoryFilter) {
   state.currentView = view;
   state.searchQuery = '';
+  if (!keepCategoryFilter) state.categoryFilter = null;
   document.getElementById('search-inp').value = '';
   document.getElementById('search-clr').classList.add('hidden');
 
@@ -1118,10 +1145,21 @@ function renderExpenseList() {
     return d.getFullYear() === yr && d.getMonth() + 1 === mo;
   });
 
+  const badge = document.getElementById('cat-filter-badge');
+  if (state.categoryFilter) {
+    badge.classList.remove('hidden');
+    document.getElementById('cat-filter-name').textContent = state.categoryFilter;
+  } else {
+    badge.classList.add('hidden');
+  }
+
   let searched = filtered;
+  if (state.categoryFilter) {
+    searched = searched.filter(t => t.category === state.categoryFilter);
+  }
   if (state.searchQuery) {
     const q = state.searchQuery.toLowerCase();
-    searched = filtered.filter(t =>
+    searched = searched.filter(t =>
       t.desc.toLowerCase().includes(q) ||
       t.category.toLowerCase().includes(q) ||
       t.notes.toLowerCase().includes(q)
@@ -1133,6 +1171,17 @@ function renderExpenseList() {
     html += renderTxRow(t);
   });
   document.getElementById('all-txs').innerHTML = html || '<div class="empty-state">No transactions</div>';
+}
+
+function filterByCategory(cat) {
+  state.categoryFilter = cat;
+  switchView('expenses', true);
+}
+
+function clearCategoryFilter() {
+  state.categoryFilter = null;
+  renderExpenseList();
+  renderSidebarCats();
 }
 
 function renderTxRow(t) {
@@ -2025,6 +2074,38 @@ function renderAll() {
 
   const hasBusinessContent = data.pipeline.length > 0 || data.transactions.some(t => t.section === 'business');
   document.getElementById('nav-pipeline').classList.toggle('hidden', !hasBusinessContent && state.currentTab === 'personal');
+
+  renderSidebarCats();
+}
+
+// Desktop-only sidebar: live per-category totals for the current tab/period, click to filter
+function renderSidebarCats() {
+  const el = document.getElementById('sidebar-cats');
+  if (!el) return;
+
+  const txs = getVisibleTxs().filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === state.currentYear && d.getMonth() + 1 === state.currentMonth && t.type === 'expense';
+  });
+
+  const totals = {};
+  txs.forEach(t => { totals[t.category] = (totals[t.category] || 0) + t.amount; });
+
+  const cats = data.categories.expense || [];
+  const isBiz = state.currentTab === 'business';
+  const dotColor = isBiz ? '#a8d8b8' : '#a8c8f0';
+
+  const html = cats.map(cat => {
+    const amt = totals[cat] || 0;
+    const active = state.categoryFilter === cat;
+    return `<button class="sidebar-cat-item${active ? ' active' : ''}${isBiz ? ' biz' : ''}" onclick="filterByCategory('${cat.replace(/'/g, "\\'")}')">
+      <div class="sidebar-cat-dot" style="background:${active ? '#f0b8cc' : dotColor};opacity:${active ? 1 : 0.6}"></div>
+      <span class="sidebar-cat-label">${cat}</span>
+      ${amt > 0 ? `<span class="sidebar-cat-amt">$${amt.toFixed(2)}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  el.innerHTML = html;
 }
 
 // Init
