@@ -1823,8 +1823,14 @@ function convertOldBackup(oldData) {
       goals: [],
       pipeline: [],
       categories: {
-        expense: Array.isArray(oldData.personalCats) ? oldData.personalCats : DEF_EXP_CATS,
-        income: Array.isArray(oldData.bizCats) ? oldData.bizCats : DEF_INC_CATS
+        expense: Array.from(new Set([
+          ...(Array.isArray(oldData.personalCats) ? oldData.personalCats : []),
+          ...(Array.isArray(oldData.bizCats) ? oldData.bizCats.filter(c => c !== 'Revenue / Income') : [])
+        ])),
+        income: Array.from(new Set([
+          ...DEF_INC_CATS,
+          ...(Array.isArray(oldData.bizCats) && oldData.bizCats.includes('Revenue / Income') ? ['Revenue / Income'] : [])
+        ]))
       },
       name: oldData.userName || 'User',
       bizName: oldData.bizName || '',
@@ -1876,11 +1882,15 @@ function convertOldBackup(oldData) {
       converted.pipeline = oldData.pipeline.filter(p => p).map(p => {
         try {
           let month = p.month;
-          // Handle month format: "2026-05" → 5, or just "5"
+          let year = p.year;
+          // Handle month format: "2026-05" → month 5, year 2026
           if (typeof month === 'string' && month.includes('-')) {
-            month = parseInt(month.split('-')[1]) || 1;
+            const parts = month.split('-');
+            year = year || parseInt(parts[0]) || new Date().getFullYear();
+            month = parseInt(parts[1]) || 1;
           } else {
             month = parseInt(month) || 1;
+            year = year || new Date().getFullYear();
           }
 
           return {
@@ -1888,7 +1898,7 @@ function convertOldBackup(oldData) {
             client: p.client || '',
             amount: parseFloat(p.amount) || 0,
             month: month,
-            year: p.year || new Date().getFullYear(),
+            year: year,
             notes: p.notes || '',
             status: p.status || 'pending'
           };
