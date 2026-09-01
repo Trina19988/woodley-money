@@ -567,8 +567,12 @@ async function afterLogin() {
     profileExists = loaded._profileExists;
     delete loaded._profileExists;
 
-    if (!profileExists) {
-      // New Supabase account — check for existing local data to migrate up
+    const hasCloudData = (loaded.transactions && loaded.transactions.length > 0) ||
+                          (loaded.goals && loaded.goals.length > 0) ||
+                          (loaded.pipeline && loaded.pipeline.length > 0);
+
+    if (!hasCloudData) {
+      // Cloud is empty — check for existing local data to migrate up (regardless of whether an account already exists)
       const stored = localStorage.getItem('woodley-data');
       let localData = null;
       if (stored) {
@@ -589,6 +593,7 @@ async function afterLogin() {
       }
     } else {
       data = loaded;
+      profileExists = true;
     }
 
     localStorage.setItem('woodley-data', JSON.stringify(data));
